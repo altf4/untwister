@@ -1,4 +1,4 @@
 untwister
 =========
 
-Seed recovery tool for the Mersenne Twister 
+Seed recovery tool for the PRNGs
