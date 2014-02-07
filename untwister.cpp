@@ -21,37 +21,46 @@
 #include <string>
 #include <stdint.h>
 #include <iostream>
-#include <random>
 #include <fstream>
 #include <vector>
 #include <limits.h>
+#include "Generator.h"
 
 using namespace std;
 
-//seed, quality of fit
+//Pair of <seed, quality of fit>
 typedef pair<uint32_t, double> Seed; 
-
-static uint32_t depth = 1000;
 static vector<uint32_t> observed_outputs;
 
 void Usage()
 {
-    cout << "Untwister, recover your PRNG seeds from observed values." << endl;
-    cout << "\t-d <depth> -i <input_file> [-g <seed>]" << endl;
+    cout << "Untwister, recover PRNG seeds from observed values." << endl;
+    cout << "\t-i <input_file> [-d <depth> ] [-r <rng_alg>] [-g <seed>] [-t]\n" << endl;
+    cout << "\t-i <input_file>\n\t\tPath to file input file containing observed results of your RNG. The contents are expected to be newline separated 32-bit integers. See test_input.txt for an example." << endl;
+    cout << "\t-d <depth>\n\t\tThe depth (default 1000) to inspect for each seed value when brute forcing." << endl;
+    cout << "\t-r <rng_alg>\n\t\tThe RNG algorithm to use. Supported RNG algorithms:" << endl;
+    cout << "\t\t\tmt19937 (default)" << endl;
+    cout << "\t\t\tglibc-rand" << endl;
+    cout << "\t-t\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 year from the current time." << endl;
+    cout << "" << endl;
+
 }
 
-vector <Seed> BruteForce()
+vector <Seed> BruteForce(uint32_t starting_seed, uint32_t ending_seed, 
+    uint32_t depth, string rng)
 {
     vector <Seed> answers;
+    Generator generator(rng);
 
     //TODO: Technically, this will miss the last seed value
-    for(uint32_t i = 0; i < ULONG_MAX; i++)
+    for(uint32_t i = starting_seed; i < ending_seed; i++)
     {
-        mt19937 generator(i);
-        int matchesFound = 0;
+        generator.Seed(i);        
+
+        uint32_t matchesFound = 0;
         for(uint32_t j = 0; j < depth; j++)
         {
-            uint32_t next_rand = generator();
+            uint32_t next_rand = generator.Random();
             uint32_t observed = observed_outputs[matchesFound];
 
             if(observed == next_rand)
@@ -70,44 +79,60 @@ vector <Seed> BruteForce()
             answers.push_back(seed);
             cout << "success!: " << i << endl;
         }
-        else
-        {
-            //cout << "failed: " << i << endl;
-        }
     }
     return answers;
 }
 
-void GenerateSample(uint32_t seed)
+void GenerateSample(uint32_t seed, uint32_t depth, string rng)
 {
-    mt19937 generator(seed);
-    mt19937 distance_gen(time(NULL));
-    uint32_t distance = distance_gen() % (depth - 10);
+    Generator generator(rng);
+    generator.Seed(seed);
+    Generator distance_gen(rng);
+    distance_gen.Seed(time(NULL));
+    uint32_t distance = distance_gen.Random() % (depth - 10);
 
     //Burn a bunch of random numbers
-    for(int i = 0; i < distance; i++)
+    for(uint32_t i = 0; i < distance; i++)
     {
-        generator();
+        generator.Random();
     }
 
-    for(int i = 0; i < 10; i++)
+    for(uint32_t i = 0; i < 10; i++)
     {
-        cout << generator() << endl;
+        cout << generator.Random() << endl;
     }
 }
 
 int main(int argc, char **argv)
 {
     int c;
-    while ((c = getopt (argc, argv, "d:i:g:")) != -1)
+    uint32_t starting_seed = 0;
+    uint32_t ending_seed = ULONG_MAX;
+    uint32_t depth = 1000;
+    string rng = "mt19937";
+    uint32_t seed = 0;
+
+    while ((c = getopt (argc, argv, "d:i:g:tr:")) != -1)
     {
         switch (c)
         {
             case 'g':
             {
-                uint32_t seed = strtoul(optarg, NULL, 10);
-                GenerateSample(seed);
-                return EXIT_SUCCESS;
+                seed = strtoul(optarg, NULL, 10);
+                break;
+            }
+            case 't':
+            {
+                //Default behavior of the -t flag is to try all timestamp seeds
+                //within a +/- 1 year timeframe from the present.
+                starting_seed = time(NULL) - 31536000;
+                ending_seed = time(NULL) + 31536000;
+                break;
+            }
+            case 'r':
+            {
+                rng = optarg;
+                break;
             }
             case 'd':
             {
@@ -152,6 +177,12 @@ int main(int argc, char **argv)
         }
     }
 
+    if(seed != 0)
+    {
+        GenerateSample(seed, depth, rng);
+        return EXIT_SUCCESS;
+    }
+
     if(observed_outputs.empty())
     {
         Usage();
@@ -159,8 +190,8 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    vector <Seed> answers = BruteForce();
-    for(int i = 0; i < answers.size(); i++)
+    vector <Seed> answers = BruteForce(starting_seed, ending_seed, depth, rng);
+    for(uint32_t i = 0; i < answers.size(); i++)
     {
         cout << "Possible seed: " << answers[i].first;
         cout << " with strength: " << answers[i].second << endl;
