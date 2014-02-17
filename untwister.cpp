@@ -36,12 +36,18 @@ void Usage()
 {
     cout << "Untwister, recover PRNG seeds from observed values." << endl;
     cout << "\t-i <input_file> [-d <depth> ] [-r <rng_alg>] [-g <seed>] [-t]\n" << endl;
-    cout << "\t-i <input_file>\n\t\tPath to file input file containing observed results of your RNG. The contents are expected to be newline separated 32-bit integers. See test_input.txt for an example." << endl;
+    cout << "\t-i <input_file>\n\t\tPath to file input file containing observed results of your RNG. The contents" << endl;
+    cout << "\t\tare expected to be newline separated 32-bit integers. See test_input.txt for" << endl;
+    cout << "\t\tan example." << endl;
     cout << "\t-d <depth>\n\t\tThe depth (default 1000) to inspect for each seed value when brute forcing." << endl;
+    cout << "\t\tChoosing a higher depth value will make brute forcing take longer (linearly), but is " << endl;
+    cout << "\t\trequired for cases where the generator has been used many times already." << endl;
     cout << "\t-r <rng_alg>\n\t\tThe RNG algorithm to use. Supported RNG algorithms:" << endl;
     cout << "\t\t\tmt19937 (default)" << endl;
     cout << "\t\t\tglibc-rand" << endl;
-    cout << "\t-t\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 year from the current time." << endl;
+    cout << "\t-t\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 " << endl;
+    cout << "\t\tyear from the current time." << endl;
+    cout << "\t-g <seed>\n\t\tGenerate a test set of random numbers from the given seed (at a random depth)" << endl;
     cout << "" << endl;
 
 }
