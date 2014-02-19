@@ -30,15 +30,19 @@
 #include "ConsoleColors.h"
 #include "Generator.h"
 
-
+using std::chrono::duration_cast;
+using std::chrono::seconds;
+using std::chrono::steady_clock;
 
 //Pair of <seed, quality of fit>
 typedef std::pair<uint32_t, double> Seed;
-static std::vector<uint32_t> observed_outputs;
+static std::vector<uint32_t> observedOutputs;
+static const unsigned int UPDATE_INTERVAL = 60;
+static const unsigned int ONE_YEAR = 31536000;
 
 void Usage()
 {
-    std::cout << BOLD << "Untwister, recover PRNG seeds from observed values." << RESET << std::endl;
+    std::cout << BOLD << "Untwister" << RESET << " - Recover PRNG seeds from observed values." << std::endl;
     std::cout << "\t-i <input_file> [-d <depth> ] [-r <rng_alg>] [-g <seed>] [-t <threads>]\n" << std::endl;
     std::cout << "\t-i <input_file>\n\t\tPath to file input file containing observed results of your RNG. The contents" << std::endl;
     std::cout << "\t\tare expected to be newline separated 32-bit integers. See test_input.txt for" << std::endl;
@@ -59,17 +63,19 @@ void Usage()
 
 
 /* Yeah lots of parameters, but such is the life of a thread */
-void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isWorking, std::vector <Seed>* answers,
+void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isWorking, std::vector<Seed>* answers,
         uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
 {
+    uint32_t work = endingSeed - startingSeed;
     workingMutex.lock();
-    std::cout << INFO << "Thread #" << id + 1 << " is working on " << startingSeed << " -> " << endingSeed << std::endl;
+    std::cout << INFO << "Thread #" << id << " is working on " << startingSeed << " -> "
+              << endingSeed << " (" << work << ")" << std::endl;
     workingMutex.unlock();
 
     Generator generator(rng);
+    steady_clock::time_point timer = steady_clock::now();
 
-    // TODO: Technically, this will miss the last seed value
-    for (uint32_t seedIndex = startingSeed; seedIndex < endingSeed; ++seedIndex)
+    for (uint32_t seedIndex = startingSeed; seedIndex <= endingSeed; ++seedIndex)
     {
         generator.Seed(seedIndex);
 
@@ -77,15 +83,14 @@ void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isWorking
         for (uint32_t index = 0; index < depth; index++)
         {
             uint32_t nextRand = generator.Random();
-            uint32_t observed = observed_outputs[matchesFound];
+            uint32_t observed = observedOutputs[matchesFound];
 
             if (observed == nextRand)
             {
                 matchesFound++;
-                if(matchesFound == observed_outputs.size())
+                if(matchesFound == observedOutputs.size())
                 {
-                    // This seed is a winner if we get to the end. Just quit the loop
-                    break;
+                    break;   // This seed is a winner if we get to the end
                 }
             }
         }
@@ -94,9 +99,18 @@ void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isWorking
         {
             workingMutex.unlock();
             break;  // Some other thread found the seed
+        } else {
+            steady_clock::time_point now = steady_clock::now();
+            int timeDelta = duration_cast<seconds>(now - timer).count();
+            if (UPDATE_INTERVAL <= timeDelta)
+            {
+                double percent = ((double) (seedIndex - startingSeed) / (double) work) * 100.0;
+                std::cout << INFO << "Thread #" << id << ": " << percent << "%" << std::endl;
+                timer = steady_clock::now();
+            }
         }
         workingMutex.unlock();
-        if (matchesFound == observed_outputs.size())
+        if (matchesFound == observedOutputs.size())
         {
             Seed seed = {seedIndex, 100};
             workingMutex.lock();
@@ -194,8 +208,8 @@ int main(int argc, char **argv)
             {
                 //Default behavior of the -t flag is to try all timestamp seeds
                 //within a +/- 1 year timeframe from the present.
-                lowerBoundSeed = time(NULL) - 31536000;
-                upperBoundSeed = time(NULL) + 31536000;
+                lowerBoundSeed = time(NULL) - ONE_YEAR;
+                upperBoundSeed = time(NULL) + ONE_YEAR;
                 break;
             }
             case 'r':
@@ -223,7 +237,7 @@ int main(int argc, char **argv)
                 std::string line;
                 while (std::getline(infile, line))
                 {
-                    observed_outputs.push_back(strtoul(line.c_str(), NULL, 10));
+                    observedOutputs.push_back(strtoul(line.c_str(), NULL, 10));
                 }
                 break;
             }
@@ -262,7 +276,7 @@ int main(int argc, char **argv)
         return EXIT_SUCCESS;
     }
 
-    if (observed_outputs.empty())
+    if (observedOutputs.empty())
     {
         Usage();
         std::cerr << WARN << "ERROR: No input numbers provided. Use -i <file> to provide a file" << std::endl;
@@ -270,7 +284,9 @@ int main(int argc, char **argv)
     }
 
     std::vector <Seed>* answers = new std::vector <Seed>;
+    steady_clock::time_point start = steady_clock::now();
     SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);
+    std::cout << "Completed in " << duration_cast<seconds>(steady_clock::now() - start).count() << " seconds" << std::endl;
     for (unsigned int index = 0; index < answers->size(); ++index)
     {
         std::cout << SUCCESS << "Seed is " << answers->at(index).first;
