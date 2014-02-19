@@ -93,9 +93,9 @@ void GenerateSample(uint32_t seed, uint32_t depth, string rng)
 {
     Generator generator(rng);
     generator.Seed(seed);
-    Generator distance_gen(rng);
-    distance_gen.Seed(time(NULL));
-    uint32_t distance = distance_gen.Random() % (depth - 10);
+    //Generator distance_gen(rng);
+    //distance_gen.Seed(time(NULL));
+    uint32_t distance = 0;//distance_gen.Random() % (depth - 10);
 
     //Burn a bunch of random numbers
     for(uint32_t i = 0; i < distance; i++)
@@ -117,6 +117,7 @@ int main(int argc, char **argv)
     uint32_t depth = 1000;
     string rng = "mt19937";
     uint32_t seed = 0;
+    bool generate_ints = false;
 
     while ((c = getopt (argc, argv, "d:i:g:tr:")) != -1)
     {
@@ -124,7 +125,8 @@ int main(int argc, char **argv)
         {
             case 'g':
             {
-                seed = strtoul(optarg, NULL, 10);
+                seed = strtoul(optarg, NULL, 0);
+                generate_ints = true;
                 break;
             }
             case 't':
@@ -183,7 +185,7 @@ int main(int argc, char **argv)
         }
     }
 
-    if(seed != 0)
+    if(generate_ints == true)
     {
         GenerateSample(seed, depth, rng);
         return EXIT_SUCCESS;
