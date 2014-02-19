@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <mutex>
 
 #include "ConsoleColors.h"
 #include "Generator.h"
@@ -149,7 +150,7 @@ std::vector <uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWor
     uint32_t work = sizeOfWork / numberOfWorkers;
     uint32_t leftover = sizeOfWork % numberOfWorkers;
     std::vector<uint32_t> labor(numberOfWorkers);
-    for (int index = 0; index < numberOfWorkers; ++index)
+    for (uint32_t index = 0; index < numberOfWorkers; ++index)
     {
         if (0 < leftover)
         {
