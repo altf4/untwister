@@ -1,4 +1,4 @@
 untwister
 =========
 
-Seed recovery tool for the PRNGs
+Multi-threaded seed recovery tool for the PRNGs
