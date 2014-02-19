@@ -26,7 +26,6 @@
 #include <string>
 #include <vector>
 #include <thread>
-#include <mutex>
 
 #include "ConsoleColors.h"
 #include "Generator.h"
@@ -39,7 +38,6 @@ using std::chrono::steady_clock;
 //Pair of <seed, quality of fit>
 typedef std::pair<uint32_t, double> Seed;
 static std::vector<uint32_t> observedOutputs;
-static const unsigned int UPDATE_INTERVAL = 5;
 static const unsigned int ONE_YEAR = 31536000;
 
 void Usage()
