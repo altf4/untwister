@@ -60,13 +60,13 @@ void Usage()
 
 /* Yeah lots of parameters, but such is the life of a thread */
 void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isWorking, std::vector <Seed>* answers,
-		uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
+        uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
 {
-	workingMutex.lock();
-	std::cout << INFO << "Thread #" << id + 1 << " is working on " << startingSeed << " -> " << endingSeed << std::endl;
-	workingMutex.unlock();
+    workingMutex.lock();
+    std::cout << INFO << "Thread #" << id + 1 << " is working on " << startingSeed << " -> " << endingSeed << std::endl;
+    workingMutex.unlock();
 
-	Generator generator(rng);
+    Generator generator(rng);
 
     // TODO: Technically, this will miss the last seed value
     for (uint32_t seedIndex = startingSeed; seedIndex < endingSeed; ++seedIndex)
@@ -92,8 +92,8 @@ void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isWorking
         workingMutex.lock();
         if (!isWorking)
         {
-        	workingMutex.unlock();
-        	break;  // Some other thread found the seed
+            workingMutex.unlock();
+            break;  // Some other thread found the seed
         }
         workingMutex.unlock();
         if (matchesFound == observed_outputs.size())
@@ -130,26 +130,26 @@ void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
 /* Divide X number of seeds among Y number of threads */
 std::vector <uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWorkers)
 {
-	uint32_t work = sizeOfWork / numberOfWorkers;
-	uint32_t leftover = sizeOfWork % numberOfWorkers;
-	std::vector <uint32_t> labor(numberOfWorkers);
-	for (int index = 0; index < numberOfWorkers; ++index)
-	{
-		if (0 < leftover)
-		{
-			labor.at(index) = work + 1;
-			--leftover;
-		}
-		else
-		{
-			labor.at(index) = work;
-		}
-	}
-	return labor;
+    uint32_t work = sizeOfWork / numberOfWorkers;
+    uint32_t leftover = sizeOfWork % numberOfWorkers;
+    std::vector<uint32_t> labor(numberOfWorkers);
+    for (int index = 0; index < numberOfWorkers; ++index)
+    {
+        if (0 < leftover)
+        {
+            labor.at(index) = work + 1;
+            --leftover;
+        }
+        else
+        {
+            labor.at(index) = work;
+        }
+    }
+    return labor;
 }
 
 void SpawnThreads(const unsigned int threads, std::vector <Seed>* answers, uint32_t lowerBoundSeed,
-		uint32_t upperBoundSeed, uint32_t depth, std::string rng)
+        uint32_t upperBoundSeed, uint32_t depth, std::string rng)
 {
     std::mutex workingMutex;
     bool isWorking = true;  // Flag to tell threads to stop working
@@ -157,11 +157,11 @@ void SpawnThreads(const unsigned int threads, std::vector <Seed>* answers, uint3
     std::cout << INFO << "Spawning " << threads << " worker thread(s) ..." << std::endl;
 
     std::vector<std::thread> pool(threads);
-    std::vector <uint32_t> labor = DivisionOfLabor(upperBoundSeed - lowerBoundSeed, threads);
+    std::vector<uint32_t> labor = DivisionOfLabor(upperBoundSeed - lowerBoundSeed, threads);
     uint32_t startAt = lowerBoundSeed;
     for (unsigned int id = 0; id < threads; ++id)
     {
-    	uint32_t endAt = startAt + labor.at(id);
+        uint32_t endAt = startAt + labor.at(id);
         pool[id] = std::thread(BruteForce, id, std::ref(workingMutex), std::ref(isWorking), answers, startAt, endAt, depth, rng);
         startAt += labor.at(id);
     }
@@ -229,13 +229,13 @@ int main(int argc, char **argv)
             }
             case 't':
             {
-            	threads = strtoul(optarg, NULL, 10);
-				if (threads == 0)
-				{
-					std::cerr << WARN << "ERROR: Please enter a valid number of threads > 1" << std::endl;
-					return EXIT_FAILURE;
-				}
-				break;
+                threads = strtoul(optarg, NULL, 10);
+                if (threads == 0)
+                {
+                    std::cerr << WARN << "ERROR: Please enter a valid number of threads > 1" << std::endl;
+                    return EXIT_FAILURE;
+                }
+                break;
             }
             case '?':
             {
@@ -256,13 +256,13 @@ int main(int argc, char **argv)
         }
     }
 
-    if(seed != 0)
+    if (seed != 0)
     {
         GenerateSample(seed, depth, rng);
         return EXIT_SUCCESS;
     }
 
-    if(observed_outputs.empty())
+    if (observed_outputs.empty())
     {
         Usage();
         std::cerr << WARN << "ERROR: No input numbers provided. Use -i <file> to provide a file" << std::endl;
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
 
     std::vector <Seed>* answers = new std::vector <Seed>;
     SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);
-    for(unsigned int index = 0; index < answers->size(); ++index)
+    for (unsigned int index = 0; index < answers->size(); ++index)
     {
         std::cout << SUCCESS << "Seed is " << answers->at(index).first;
         std::cout << " with a confidence of " << answers->at(index).second << std::endl;
