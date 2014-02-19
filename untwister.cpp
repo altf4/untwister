@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <iostream>
 #include <fstream>
+#include <atomic>
 #include <string>
 #include <vector>
 #include <thread>
@@ -30,14 +31,15 @@
 #include "ConsoleColors.h"
 #include "Generator.h"
 
-using std::chrono::duration_cast;
 using std::chrono::seconds;
+using std::chrono::milliseconds;
+using std::chrono::duration_cast;
 using std::chrono::steady_clock;
 
 //Pair of <seed, quality of fit>
 typedef std::pair<uint32_t, double> Seed;
 static std::vector<uint32_t> observedOutputs;
-static const unsigned int UPDATE_INTERVAL = 60;
+static const unsigned int UPDATE_INTERVAL = 5;
 static const unsigned int ONE_YEAR = 31536000;
 
 void Usage()
@@ -63,17 +65,10 @@ void Usage()
 
 
 /* Yeah lots of parameters, but such is the life of a thread */
-void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isWorking, std::vector<Seed>* answers,
-        uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
+void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isCompleted, std::vector<Seed>* answers,
+        std::vector<uint32_t>* status, uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
 {
-    uint32_t work = endingSeed - startingSeed;
-    workingMutex.lock();
-    std::cout << INFO << "Thread #" << id << " is working on " << startingSeed << " -> "
-              << endingSeed << " (" << work << ")" << std::endl;
-    workingMutex.unlock();
-
     Generator generator(rng);
-    steady_clock::time_point timer = steady_clock::now();
 
     for (uint32_t seedIndex = startingSeed; seedIndex <= endingSeed; ++seedIndex)
     {
@@ -94,31 +89,16 @@ void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isWorking
                 }
             }
         }
-        workingMutex.lock();
-        if (!isWorking)
+        if (isCompleted)
         {
-            workingMutex.unlock();
             break;  // Some other thread found the seed
         }
-        else
-        {
-            steady_clock::time_point now = steady_clock::now();
-            int timeDelta = duration_cast<seconds>(now - timer).count();
-            if (UPDATE_INTERVAL <= timeDelta)
-            {
-                double percent = ((double) (seedIndex - startingSeed) / (double) work) * 100.0;
-                std::cout << DEBUG << "Thread #" << id << ": " << percent << "%" << std::endl;
-                timer = steady_clock::now();
-            }
-        }
-        workingMutex.unlock();
+        status->at(id) = seedIndex - startingSeed;
         if (matchesFound == observedOutputs.size())
         {
             Seed seed = {seedIndex, 100};
-            workingMutex.lock();
             answers->push_back(seed);
-            isWorking = false;
-            workingMutex.unlock();
+            isCompleted = true;
         }
     }
 }
@@ -141,6 +121,28 @@ void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
     {
         std::cout << generator.Random() << std::endl;
     }
+}
+
+void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, std::mutex& workingMutex,
+        uint32_t totalWork, std::vector<uint32_t>* status)
+{
+    double percent = 0;
+    steady_clock::time_point start = steady_clock::now();
+    while (!isCompleted)
+    {
+        unsigned int sum = 0;
+        for (unsigned int index = 0; index < status->size(); ++index)
+        {
+            sum += status->at(index);
+        }
+        percent = ((double) (sum) / (double) totalWork) * 100.0;
+        isCompleted = (100.0 <= percent);
+        printf("\r%s%sProgress: %3.2f%c", CLEAR.c_str(), DEBUG.c_str(), percent, 37);
+        printf(" (%d seconds)", (int) duration_cast<seconds>(steady_clock::now() - start).count());
+        std::cout.flush();
+        std::this_thread::sleep_for(milliseconds(150));
+    }
+    printf("\r%s", CLEAR.c_str());
 }
 
 /* Divide X number of seeds among Y number of threads */
@@ -168,22 +170,23 @@ void SpawnThreads(const unsigned int threads, std::vector <Seed>* answers, uint3
         uint32_t upperBoundSeed, uint32_t depth, std::string rng)
 {
     std::mutex workingMutex;
-    bool isWorking = true;  // Flag to tell threads to stop working
-
+    bool isCompleted = false;  // Flag to tell threads to stop working
     std::cout << INFO << "Spawning " << threads << " worker thread(s) ..." << std::endl;
 
     std::vector<std::thread> pool(threads);
+    std::vector<uint32_t>* status = new std::vector<uint32_t>(threads);
     std::vector<uint32_t> labor = DivisionOfLabor(upperBoundSeed - lowerBoundSeed, threads);
     uint32_t startAt = lowerBoundSeed;
     for (unsigned int id = 0; id < threads; ++id)
     {
         uint32_t endAt = startAt + labor.at(id);
-        pool[id] = std::thread(BruteForce, id, std::ref(workingMutex), std::ref(isWorking), answers, startAt, endAt, depth, rng);
+        pool[id] = std::thread(BruteForce, id, std::ref(workingMutex), std::ref(isCompleted), answers, status, startAt, endAt, depth, rng);
         startAt += labor.at(id);
     }
+    StatusThread(std::ref(pool), std::ref(isCompleted), std::ref(workingMutex), upperBoundSeed - lowerBoundSeed, status);
     for (unsigned int index = 0; index < pool.size(); ++index)
     {
-        pool.at(index).join();
+        pool[index].join();
     }
 }
 
@@ -208,8 +211,6 @@ int main(int argc, char **argv)
             }
             case 'u':
             {
-                //Default behavior of the -t flag is to try all timestamp seeds
-                //within a +/- 1 year timeframe from the present.
                 lowerBoundSeed = time(NULL) - ONE_YEAR;
                 upperBoundSeed = time(NULL) + ONE_YEAR;
                 break;
@@ -286,13 +287,13 @@ int main(int argc, char **argv)
     }
 
     std::vector <Seed>* answers = new std::vector <Seed>;
-    steady_clock::time_point start = steady_clock::now();
+    steady_clock::time_point elapsed = steady_clock::now();
     SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);
-    std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - start).count() << " seconds" << std::endl;
+    std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - elapsed).count() << " second(s)" << std::endl;
     for (unsigned int index = 0; index < answers->size(); ++index)
     {
         std::cout << SUCCESS << "Seed is " << answers->at(index).first;
-        std::cout << " with a confidence of " << answers->at(index).second << std::endl;
+        std::cout << " with a confidence of " << answers->at(index).second << "%" << std::endl;
     }
     delete answers;
     return EXIT_SUCCESS;

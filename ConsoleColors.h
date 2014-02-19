@@ -33,6 +33,7 @@
     const std::string BOLD = "\033[1m";
     const std::string UNDERLINE = "\033[4m";
     const std::string RESET = "\033[0m";
+    const std::string CLEAR = "\r\x1b[2K";
 
 #else
 
@@ -57,6 +58,7 @@
     const std::string BOLD = "";
     const std::string UNDERLINE = "";
     const std::string RESET = "";
+    const std::string CLEAR = "\n";
 
 #endif /* __WIN32__ */
 
