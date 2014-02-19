@@ -90,7 +90,7 @@ void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isWorking
                 matchesFound++;
                 if(matchesFound == observedOutputs.size())
                 {
-                    break;   // This seed is a winner if we get to the end
+                    break;  // This seed is a winner if we get to the end
                 }
             }
         }
@@ -99,13 +99,15 @@ void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isWorking
         {
             workingMutex.unlock();
             break;  // Some other thread found the seed
-        } else {
+        }
+        else
+        {
             steady_clock::time_point now = steady_clock::now();
             int timeDelta = duration_cast<seconds>(now - timer).count();
             if (UPDATE_INTERVAL <= timeDelta)
             {
                 double percent = ((double) (seedIndex - startingSeed) / (double) work) * 100.0;
-                std::cout << INFO << "Thread #" << id << ": " << percent << "%" << std::endl;
+                std::cout << DEBUG << "Thread #" << id << ": " << percent << "%" << std::endl;
                 timer = steady_clock::now();
             }
         }
@@ -286,7 +288,7 @@ int main(int argc, char **argv)
     std::vector <Seed>* answers = new std::vector <Seed>;
     steady_clock::time_point start = steady_clock::now();
     SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);
-    std::cout << "Completed in " << duration_cast<seconds>(steady_clock::now() - start).count() << " seconds" << std::endl;
+    std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - start).count() << " seconds" << std::endl;
     for (unsigned int index = 0; index < answers->size(); ++index)
     {
         std::cout << SUCCESS << "Seed is " << answers->at(index).first;
