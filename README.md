@@ -1,7 +1,7 @@
 untwister
 =========
 
-Untwister, recover PRNG seeds from observed values.
+Untwister, Multi-threaded seed recovery tool for PRNGs
 
 Usage:
 ```
