@@ -24,44 +24,46 @@
 #include <fstream>
 #include <vector>
 #include <limits.h>
+
+#include "ConsoleColors.h"
 #include "Generator.h"
 
-using namespace std;
+
 
 //Pair of <seed, quality of fit>
-typedef pair<uint32_t, double> Seed; 
-static vector<uint32_t> observed_outputs;
+typedef std::pair<uint32_t, double> Seed;
+static std::vector<uint32_t> observed_outputs;
 
 void Usage()
 {
-    cout << "Untwister, recover PRNG seeds from observed values." << endl;
-    cout << "\t-i <input_file> [-d <depth> ] [-r <rng_alg>] [-g <seed>] [-t]\n" << endl;
-    cout << "\t-i <input_file>\n\t\tPath to file input file containing observed results of your RNG. The contents" << endl;
-    cout << "\t\tare expected to be newline separated 32-bit integers. See test_input.txt for" << endl;
-    cout << "\t\tan example." << endl;
-    cout << "\t-d <depth>\n\t\tThe depth (default 1000) to inspect for each seed value when brute forcing." << endl;
-    cout << "\t\tChoosing a higher depth value will make brute forcing take longer (linearly), but is " << endl;
-    cout << "\t\trequired for cases where the generator has been used many times already." << endl;
-    cout << "\t-r <rng_alg>\n\t\tThe RNG algorithm to use. Supported RNG algorithms:" << endl;
-    cout << "\t\t\tmt19937 (default)" << endl;
-    cout << "\t\t\tglibc-rand" << endl;
-    cout << "\t-t\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 " << endl;
-    cout << "\t\tyear from the current time." << endl;
-    cout << "\t-g <seed>\n\t\tGenerate a test set of random numbers from the given seed (at a random depth)" << endl;
-    cout << "" << endl;
+    std::cout << BOLD << "Untwister, recover PRNG seeds from observed values." << RESET << std::endl;
+    std::cout << "\t-i <input_file> [-d <depth> ] [-r <rng_alg>] [-g <seed>] [-t]\n" << std::endl;
+    std::cout << "\t-i <input_file>\n\t\tPath to file input file containing observed results of your RNG. The contents" << std::endl;
+    std::cout << "\t\tare expected to be newline separated 32-bit integers. See test_input.txt for" << std::endl;
+    std::cout << "\t\tan example." << std::endl;
+    std::cout << "\t-d <depth>\n\t\tThe depth (default 1000) to inspect for each seed value when brute forcing." << std::endl;
+    std::cout << "\t\tChoosing a higher depth value will make brute forcing take longer (linearly), but is " << std::endl;
+    std::cout << "\t\trequired for cases where the generator has been used many times already." << std::endl;
+    std::cout << "\t-r <rng_alg>\n\t\tThe RNG algorithm to use. Supported RNG algorithms:" << std::endl;
+    std::cout << "\t\t\tmt19937 (default)" << std::endl;
+    std::cout << "\t\t\tglibc-rand" << std::endl;
+    std::cout << "\t-t\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 " << std::endl;
+    std::cout << "\t\tyear from the current time." << std::endl;
+    std::cout << "\t-g <seed>\n\t\tGenerate a test set of random numbers from the given seed (at a random depth)" << std::endl;
+    std::cout << "" << std::endl;
 
 }
 
-vector <Seed> BruteForce(uint32_t starting_seed, uint32_t ending_seed, 
-    uint32_t depth, string rng)
+std::vector <Seed> BruteForce(uint32_t starting_seed, uint32_t ending_seed,
+    uint32_t depth, std::string rng)
 {
-    vector <Seed> answers;
+    std::vector <Seed> answers;
     Generator generator(rng);
 
     //TODO: Technically, this will miss the last seed value
     for(uint32_t i = starting_seed; i < ending_seed; i++)
     {
-        generator.Seed(i);        
+        generator.Seed(i);
 
         uint32_t matchesFound = 0;
         for(uint32_t j = 0; j < depth; j++)
@@ -83,13 +85,13 @@ vector <Seed> BruteForce(uint32_t starting_seed, uint32_t ending_seed,
         {
             Seed seed = {i, 100};
             answers.push_back(seed);
-            cout << "success!: " << i << endl;
+            std::cout << "success!: " << i << std::endl;
         }
     }
     return answers;
 }
 
-void GenerateSample(uint32_t seed, uint32_t depth, string rng)
+void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
 {
     Generator generator(rng);
     generator.Seed(seed);
@@ -105,7 +107,7 @@ void GenerateSample(uint32_t seed, uint32_t depth, string rng)
 
     for(uint32_t i = 0; i < 10; i++)
     {
-        cout << generator.Random() << endl;
+        std::cout << generator.Random() << std::endl;
     }
 }
 
@@ -115,7 +117,7 @@ int main(int argc, char **argv)
     uint32_t starting_seed = 0;
     uint32_t ending_seed = ULONG_MAX;
     uint32_t depth = 1000;
-    string rng = "mt19937";
+    std::string rng = "mt19937";
     uint32_t seed = 0;
 
     while ((c = getopt (argc, argv, "d:i:g:tr:")) != -1)
@@ -145,17 +147,17 @@ int main(int argc, char **argv)
                 depth = strtoul(optarg, NULL, 10);
                 if(depth == 0)
                 {
-                    cerr << "ERROR: Please enter a valid depth > 1" << endl;
+                    std::cerr << WARN << "ERROR: Please enter a valid depth > 1" << std::endl;
                     return EXIT_FAILURE;
                 }
                 break;
             }
             case 'i':
             {
-                ifstream infile(optarg);
+                std::ifstream infile(optarg);
                 if(!infile)
                 {
-                    cerr << "ERROR: File \"" << optarg << "\" not found" << endl;
+                    std::cerr << WARN << "ERROR: File \"" << optarg << "\" not found" << std::endl;
                 }
                 std::string line;
                 while (std::getline(infile, line))
@@ -174,7 +176,7 @@ int main(int argc, char **argv)
                    fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
                 Usage();
                 return EXIT_FAILURE;
-            }            
+            }
             default:
             {
                 Usage();
@@ -192,15 +194,15 @@ int main(int argc, char **argv)
     if(observed_outputs.empty())
     {
         Usage();
-        cerr << "ERROR: No input numbers provided. Use -i <file> to provide a file" << endl;
+        std::cerr << WARN << "ERROR: No input numbers provided. Use -i <file> to provide a file" << std::endl;
         return EXIT_FAILURE;
     }
 
-    vector <Seed> answers = BruteForce(starting_seed, ending_seed, depth, rng);
+    std::vector <Seed> answers = BruteForce(starting_seed, ending_seed, depth, rng);
     for(uint32_t i = 0; i < answers.size(); i++)
     {
-        cout << "Possible seed: " << answers[i].first;
-        cout << " with strength: " << answers[i].second << endl;
+        std::cout << SUCCESS << "Possible seed: " << answers[i].first;
+        std::cout << " with strength: " << answers[i].second << std::endl;
     }
     return EXIT_SUCCESS;
 }
