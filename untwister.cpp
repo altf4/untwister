@@ -192,7 +192,7 @@ void SpawnThreads(const unsigned int threads, std::vector <Seed>* answers, uint3
 int main(int argc, char **argv)
 {
     int c;
-    unsigned int threads = 4;
+    unsigned int threads = 2;
     uint32_t lowerBoundSeed = 0;
     uint32_t upperBoundSeed = ULONG_MAX;
     uint32_t depth = 1000;
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
                 threads = strtoul(optarg, NULL, 10);
                 if (threads == 0)
                 {
-                    std::cerr << WARN << "ERROR: Please enter a valid number of threads > 1" << std::endl;
+                    std::cerr << WARN << "ERROR: Please enter a valid number of threads > 0" << std::endl;
                     return EXIT_FAILURE;
                 }
                 break;
