@@ -18,12 +18,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <string>
+#include <limits.h>
 #include <stdint.h>
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <vector>
-#include <limits.h>
+#include <thread>
+#include <mutex>
 
 #include "ConsoleColors.h"
 #include "Generator.h"
@@ -37,7 +39,7 @@ static std::vector<uint32_t> observed_outputs;
 void Usage()
 {
     std::cout << BOLD << "Untwister, recover PRNG seeds from observed values." << RESET << std::endl;
-    std::cout << "\t-i <input_file> [-d <depth> ] [-r <rng_alg>] [-g <seed>] [-t]\n" << std::endl;
+    std::cout << "\t-i <input_file> [-d <depth> ] [-r <rng_alg>] [-g <seed>] [-t <threads>]\n" << std::endl;
     std::cout << "\t-i <input_file>\n\t\tPath to file input file containing observed results of your RNG. The contents" << std::endl;
     std::cout << "\t\tare expected to be newline separated 32-bit integers. See test_input.txt for" << std::endl;
     std::cout << "\t\tan example." << std::endl;
@@ -47,48 +49,62 @@ void Usage()
     std::cout << "\t-r <rng_alg>\n\t\tThe RNG algorithm to use. Supported RNG algorithms:" << std::endl;
     std::cout << "\t\t\tmt19937 (default)" << std::endl;
     std::cout << "\t\t\tglibc-rand" << std::endl;
-    std::cout << "\t-t\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 " << std::endl;
+    std::cout << "\t-u\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 " << std::endl;
     std::cout << "\t\tyear from the current time." << std::endl;
     std::cout << "\t-g <seed>\n\t\tGenerate a test set of random numbers from the given seed (at a random depth)" << std::endl;
+    std::cout << "\t-t <threads>\n\t\tSpawn this many threads (default is 2)" << std::endl;
     std::cout << "" << std::endl;
 
 }
 
-std::vector <Seed> BruteForce(uint32_t starting_seed, uint32_t ending_seed,
-    uint32_t depth, std::string rng)
-{
-    std::vector <Seed> answers;
-    Generator generator(rng);
 
-    //TODO: Technically, this will miss the last seed value
-    for(uint32_t i = starting_seed; i < ending_seed; i++)
+/* Yeah lots of parameters, but such is the life of a thread */
+void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isWorking, std::vector <Seed>* answers,
+		uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
+{
+	workingMutex.lock();
+	std::cout << INFO << "Thread #" << id + 1 << " is working on " << startingSeed << " -> " << endingSeed << std::endl;
+	workingMutex.unlock();
+
+	Generator generator(rng);
+
+    // TODO: Technically, this will miss the last seed value
+    for (uint32_t seedIndex = startingSeed; seedIndex < endingSeed; ++seedIndex)
     {
-        generator.Seed(i);
+        generator.Seed(seedIndex);
 
         uint32_t matchesFound = 0;
-        for(uint32_t j = 0; j < depth; j++)
+        for (uint32_t index = 0; index < depth; index++)
         {
-            uint32_t next_rand = generator.Random();
+            uint32_t nextRand = generator.Random();
             uint32_t observed = observed_outputs[matchesFound];
 
-            if(observed == next_rand)
+            if (observed == nextRand)
             {
                 matchesFound++;
                 if(matchesFound == observed_outputs.size())
                 {
-                    //This seed is a winner if we get to the end. Just quit the loop
+                    // This seed is a winner if we get to the end. Just quit the loop
                     break;
                 }
             }
         }
-        if(matchesFound == observed_outputs.size())
+        workingMutex.lock();
+        if (!isWorking)
         {
-            Seed seed = {i, 100};
-            answers.push_back(seed);
-            std::cout << "success!: " << i << std::endl;
+        	workingMutex.unlock();
+        	break;  // Some other thread found the seed
+        }
+        workingMutex.unlock();
+        if (matchesFound == observed_outputs.size())
+        {
+            Seed seed = {seedIndex, 100};
+            workingMutex.lock();
+            answers->push_back(seed);
+            isWorking = false;
+            workingMutex.unlock();
         }
     }
-    return answers;
 }
 
 void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
@@ -100,27 +116,72 @@ void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
     uint32_t distance = distance_gen.Random() % (depth - 10);
 
     //Burn a bunch of random numbers
-    for(uint32_t i = 0; i < distance; i++)
+    for (uint32_t i = 0; i < distance; i++)
     {
         generator.Random();
     }
 
-    for(uint32_t i = 0; i < 10; i++)
+    for (uint32_t i = 0; i < 10; i++)
     {
         std::cout << generator.Random() << std::endl;
+    }
+}
+
+/* Divide X number of seeds among Y number of threads */
+std::vector <uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWorkers)
+{
+	uint32_t work = sizeOfWork / numberOfWorkers;
+	uint32_t leftover = sizeOfWork % numberOfWorkers;
+	std::vector <uint32_t> labor(numberOfWorkers);
+	for (int index = 0; index < numberOfWorkers; ++index)
+	{
+		if (0 < leftover)
+		{
+			labor.at(index) = work + 1;
+			--leftover;
+		}
+		else
+		{
+			labor.at(index) = work;
+		}
+	}
+	return labor;
+}
+
+void SpawnThreads(const unsigned int threads, std::vector <Seed>* answers, uint32_t lowerBoundSeed,
+		uint32_t upperBoundSeed, uint32_t depth, std::string rng)
+{
+    std::mutex workingMutex;
+    bool isWorking = true;  // Flag to tell threads to stop working
+
+    std::cout << INFO << "Spawning " << threads << " worker thread(s) ..." << std::endl;
+
+    std::vector<std::thread> pool(threads);
+    std::vector <uint32_t> labor = DivisionOfLabor(upperBoundSeed - lowerBoundSeed, threads);
+    uint32_t startAt = lowerBoundSeed;
+    for (unsigned int id = 0; id < threads; ++id)
+    {
+    	uint32_t endAt = startAt + labor.at(id);
+        pool[id] = std::thread(BruteForce, id, std::ref(workingMutex), std::ref(isWorking), answers, startAt, endAt, depth, rng);
+        startAt += labor.at(id);
+    }
+    for (unsigned int index = 0; index < pool.size(); ++index)
+    {
+        pool.at(index).join();
     }
 }
 
 int main(int argc, char **argv)
 {
     int c;
-    uint32_t starting_seed = 0;
-    uint32_t ending_seed = ULONG_MAX;
+    unsigned int threads = 4;
+    uint32_t lowerBoundSeed = 0;
+    uint32_t upperBoundSeed = ULONG_MAX;
     uint32_t depth = 1000;
     std::string rng = "mt19937";
     uint32_t seed = 0;
 
-    while ((c = getopt (argc, argv, "d:i:g:tr:")) != -1)
+    while ((c = getopt(argc, argv, "d:i:g:t:r:u")) != -1)
     {
         switch (c)
         {
@@ -129,12 +190,12 @@ int main(int argc, char **argv)
                 seed = strtoul(optarg, NULL, 10);
                 break;
             }
-            case 't':
+            case 'u':
             {
                 //Default behavior of the -t flag is to try all timestamp seeds
                 //within a +/- 1 year timeframe from the present.
-                starting_seed = time(NULL) - 31536000;
-                ending_seed = time(NULL) + 31536000;
+                lowerBoundSeed = time(NULL) - 31536000;
+                upperBoundSeed = time(NULL) + 31536000;
                 break;
             }
             case 'r':
@@ -145,7 +206,7 @@ int main(int argc, char **argv)
             case 'd':
             {
                 depth = strtoul(optarg, NULL, 10);
-                if(depth == 0)
+                if (depth == 0)
                 {
                     std::cerr << WARN << "ERROR: Please enter a valid depth > 1" << std::endl;
                     return EXIT_FAILURE;
@@ -155,7 +216,7 @@ int main(int argc, char **argv)
             case 'i':
             {
                 std::ifstream infile(optarg);
-                if(!infile)
+                if (!infile)
                 {
                     std::cerr << WARN << "ERROR: File \"" << optarg << "\" not found" << std::endl;
                 }
@@ -165,6 +226,16 @@ int main(int argc, char **argv)
                     observed_outputs.push_back(strtoul(line.c_str(), NULL, 10));
                 }
                 break;
+            }
+            case 't':
+            {
+            	threads = strtoul(optarg, NULL, 10);
+				if (threads == 0)
+				{
+					std::cerr << WARN << "ERROR: Please enter a valid number of threads > 1" << std::endl;
+					return EXIT_FAILURE;
+				}
+				break;
             }
             case '?':
             {
@@ -198,12 +269,14 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    std::vector <Seed> answers = BruteForce(starting_seed, ending_seed, depth, rng);
-    for(uint32_t i = 0; i < answers.size(); i++)
+    std::vector <Seed>* answers = new std::vector <Seed>;
+    SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);
+    for(unsigned int index = 0; index < answers->size(); ++index)
     {
-        std::cout << SUCCESS << "Possible seed: " << answers[i].first;
-        std::cout << " with strength: " << answers[i].second << std::endl;
+        std::cout << SUCCESS << "Seed is " << answers->at(index).first;
+        std::cout << " with a confidence of " << answers->at(index).second << std::endl;
     }
+    delete answers;
     return EXIT_SUCCESS;
 }
 

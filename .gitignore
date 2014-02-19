@@ -20,5 +20,9 @@
 # Deleted files
 *~
 
+# clang dirs
+untwister.dSYM/
+untwister.dSYM/*
+
 #Program executables
 untwister
