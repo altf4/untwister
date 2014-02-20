@@ -5,7 +5,7 @@ all:
 
 	g++ -std=gnu++11 -O3 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"PRNGFactory.d" -MT"PRNGFactory.d" -o "PRNGFactory.o" "./PRNGFactory.cpp"
 	g++ -std=gnu++11 -O3 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"untwister.d" -MT"untwister.d" -o "untwister.o" "./untwister.cpp"
-	g++ -std=gnu++11 -O3 -g -o "untwister" ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o ./untwister.o 
+	g++ -std=gnu++11 -O3 -g3 -o "untwister" ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o ./untwister.o 
 
 clean:
 	rm -f ./prngs/*.o

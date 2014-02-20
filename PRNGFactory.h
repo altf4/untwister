@@ -14,6 +14,7 @@
 #include "prngs/PRNG.h"
 #include "prngs/Mt19937.h"
 #include "prngs/GlibcRand.h"
+#include "prngs/Ruby.h"
 
 /* Template to bind constructor to mapped string */
 template<typename T> PRNG* create() { return new T; }

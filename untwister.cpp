@@ -40,7 +40,7 @@ typedef std::pair<uint32_t, double> Seed;
 static std::vector<uint32_t> observedOutputs;
 static const unsigned int ONE_YEAR = 31536000;
 
-void Usage(PRNGFactory factory)
+void Usage(PRNGFactory factory, unsigned int threads)
 {
     std::cout << BOLD << "Untwister" << RESET << " - Recover PRNG seeds from observed values." << std::endl;
     std::cout << "\t-i <input_file> [-d <depth> ] [-r <rng_alg>] [-g <seed>] [-t <threads>]\n" << std::endl;
@@ -62,19 +62,18 @@ void Usage(PRNGFactory factory)
     std::cout << "\t-u\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 " << std::endl;
     std::cout << "\t\tyear from the current time." << std::endl;
     std::cout << "\t-g <seed>\n\t\tGenerate a test set of random numbers from the given seed (at a random depth)" << std::endl;
-    std::cout << "\t-t <threads>\n\t\tSpawn this many threads (default is 2)" << std::endl;
+    std::cout << "\t-t <threads>\n\t\tSpawn this many threads (default is " << threads << ")" << std::endl;
     std::cout << "" << std::endl;
-
 }
 
 
 /* Yeah lots of parameters, but such is the life of a thread */
-void BruteForce(const unsigned int id, bool& isCompleted, std::vector<Seed>* answers, std::vector<uint32_t>* status,
+void BruteForce(const unsigned int id, bool& isCompleted, std::vector<Seed> *answers, std::vector<uint32_t>* status,
         uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
 {
     /* Each thread must have a local factory unless you like mutexes and/or segfaults */
     PRNGFactory factory;
-    PRNG* generator = factory.getInstance(rng);
+    PRNG *generator = factory.getInstance(rng);
 
     for (uint32_t seedIndex = startingSeed; seedIndex <= endingSeed; ++seedIndex)
     {
@@ -113,9 +112,9 @@ void BruteForce(const unsigned int id, bool& isCompleted, std::vector<Seed>* ans
 void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
 {
     PRNGFactory factory;
-    PRNG* generator = factory.getInstance(rng);
+    PRNG *generator = factory.getInstance(rng);
     generator->seed(seed);
-    PRNG* distance_gen= factory.getInstance(rng);
+    PRNG *distance_gen= factory.getInstance(rng);
     distance_gen->seed(time(NULL));
     uint32_t distance = distance_gen->random() % (depth - 10);
 
@@ -133,8 +132,7 @@ void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
     delete distance_gen;
 }
 
-void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t totalWork,
-        std::vector<uint32_t>* status)
+void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t totalWork, std::vector<uint32_t> *status)
 {
     double percent = 0;
     steady_clock::time_point start = steady_clock::now();
@@ -176,14 +174,14 @@ std::vector <uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWor
     return labor;
 }
 
-void SpawnThreads(const unsigned int threads, std::vector <Seed>* answers, uint32_t lowerBoundSeed,
+void SpawnThreads(const unsigned int threads, std::vector <Seed> *answers, uint32_t lowerBoundSeed,
         uint32_t upperBoundSeed, uint32_t depth, std::string rng)
 {
     bool isCompleted = false;  // Flag to tell threads to stop working
     std::cout << INFO << "Spawning " << threads << " worker thread(s) ..." << std::endl;
 
     std::vector<std::thread> pool(threads);
-    std::vector<uint32_t>* status = new std::vector<uint32_t>(threads);
+    std::vector<uint32_t> *status = new std::vector<uint32_t>(threads);
     std::vector<uint32_t> labor = DivisionOfLabor(upperBoundSeed - lowerBoundSeed, threads);
     uint32_t startAt = lowerBoundSeed;
     for (unsigned int id = 0; id < threads; ++id)
@@ -199,10 +197,25 @@ void SpawnThreads(const unsigned int threads, std::vector <Seed>* answers, uint3
     }
 }
 
+void FindSeed(const std::string& rng, unsigned int threads, uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth)
+{
+	std::cout << INFO << "Looking for seed using " << rng << std::endl;
+	std::vector<Seed>* answers = new std::vector<Seed>;
+	steady_clock::time_point elapsed = steady_clock::now();
+	SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);
+	std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - elapsed).count() << " second(s)" << std::endl;
+	for (unsigned int index = 0; index < answers->size(); ++index)
+	{
+		std::cout << SUCCESS << "Seed is " << answers->at(index).first;
+		std::cout << " with a confidence of " << answers->at(index).second << "%" << std::endl;
+	}
+	delete answers;
+}
+
 int main(int argc, char **argv)
 {
     int c;
-    unsigned int threads = 4;
+    unsigned int threads = std::thread::hardware_concurrency();
     uint32_t lowerBoundSeed = 0;
     uint32_t upperBoundSeed = UINT_MAX;
     uint32_t depth = 1000;
@@ -272,7 +285,7 @@ int main(int argc, char **argv)
             }
             case 'h':
             {
-                Usage(factory);
+                Usage(factory, threads);
                 return EXIT_SUCCESS;
             }
             case '?':
@@ -283,12 +296,12 @@ int main(int argc, char **argv)
                    fprintf (stderr, "Unknown option `-%c'.\n", optopt);
                 else
                    fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
-                Usage(factory);
+                Usage(factory, threads);
                 return EXIT_FAILURE;
             }
             default:
             {
-                Usage(factory);
+                Usage(factory, threads);
                 return EXIT_FAILURE;
             }
         }
@@ -302,22 +315,11 @@ int main(int argc, char **argv)
 
     if (observedOutputs.empty())
     {
-        Usage(factory);
+        Usage(factory, threads);
         std::cerr << WARN << "ERROR: No input numbers provided. Use -i <file> to provide a file" << std::endl;
         return EXIT_FAILURE;
     }
-
-    std::cout << INFO << "Looking for seed using " << rng << std::endl;
-    std::vector <Seed>* answers = new std::vector <Seed>;
-    steady_clock::time_point elapsed = steady_clock::now();
-    SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);
-    std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - elapsed).count() << " second(s)" << std::endl;
-    for (unsigned int index = 0; index < answers->size(); ++index)
-    {
-        std::cout << SUCCESS << "Seed is " << answers->at(index).first;
-        std::cout << " with a confidence of " << answers->at(index).second << "%" << std::endl;
-    }
-    delete answers;
+    FindSeed(rng, threads, lowerBoundSeed, upperBoundSeed, depth);
     return EXIT_SUCCESS;
 }
 
