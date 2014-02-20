@@ -5,7 +5,7 @@
 # Libraries
 *.lib
 *.a
-
+*.d
 # Shared objects (inc. Windows DLLs)
 *.dll
 *.so
@@ -19,6 +19,10 @@
 
 # Deleted files
 *~
+
+# clang dirs
+untwister.dSYM/
+untwister.dSYM/*
 
 #Program executables
 untwister
