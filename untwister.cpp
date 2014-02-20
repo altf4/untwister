@@ -22,13 +22,13 @@
 #include <stdint.h>
 #include <iostream>
 #include <fstream>
-#include <atomic>
 #include <string>
 #include <vector>
 #include <thread>
 
 #include "ConsoleColors.h"
-#include "Generator.h"
+#include "PRNGFactory.h"
+#include "prngs/PRNG.h"
 
 using std::chrono::seconds;
 using std::chrono::milliseconds;
@@ -63,25 +63,26 @@ void Usage()
 
 
 /* Yeah lots of parameters, but such is the life of a thread */
-void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isCompleted, std::vector<Seed>* answers,
-        std::vector<uint32_t>* status, uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
+void BruteForce(const unsigned int id, bool& isCompleted, std::vector<Seed>* answers, std::vector<uint32_t>* status,
+        uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
 {
-    Generator generator(rng);
+	PRNGFactory* factory = new PRNGFactory();
+    PRNG* generator = factory->getInstance(rng);
 
     for (uint32_t seedIndex = startingSeed; seedIndex <= endingSeed; ++seedIndex)
     {
-        generator.Seed(seedIndex);
+        generator->seed(seedIndex);
 
         uint32_t matchesFound = 0;
         for (uint32_t index = 0; index < depth; index++)
         {
-            uint32_t nextRand = generator.Random();
+            uint32_t nextRand = generator->random();
             uint32_t observed = observedOutputs[matchesFound];
 
             if (observed == nextRand)
             {
                 matchesFound++;
-                if(matchesFound == observedOutputs.size())
+                if (matchesFound == observedOutputs.size())
                 {
                     break;  // This seed is a winner if we get to the end
                 }
@@ -99,30 +100,36 @@ void BruteForce(const unsigned int id, std::mutex& workingMutex, bool& isComplet
             isCompleted = true;
         }
     }
+    delete generator;
+    delete factory;
 }
 
 void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
 {
-    Generator generator(rng);
-    generator.Seed(seed);
-    Generator distance_gen(rng);
-    distance_gen.Seed(time(NULL));
-    uint32_t distance = distance_gen.Random() % (depth - 10);
+	PRNGFactory* factory = new PRNGFactory();
+    PRNG* generator = factory->getInstance(rng);
+    generator->seed(seed);
+    PRNG* distance_gen= factory->getInstance(rng);
+    distance_gen->seed(time(NULL));
+    uint32_t distance = distance_gen->random() % (depth - 10);
 
     //Burn a bunch of random numbers
-    for (uint32_t i = 0; i < distance; i++)
+    for (uint32_t index = 0; index < distance; ++index)
     {
-        generator.Random();
+        generator->random();
     }
 
-    for (uint32_t i = 0; i < 10; i++)
+    for (unsigned int index = 0; index < 10; ++index)
     {
-        std::cout << generator.Random() << std::endl;
+        std::cout << generator->random() << std::endl;
     }
+    delete generator;
+    delete distance_gen;
+    delete factory;
 }
 
-void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, std::mutex& workingMutex,
-        uint32_t totalWork, std::vector<uint32_t>* status)
+void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t totalWork,
+        std::vector<uint32_t>* status)
 {
     double percent = 0;
     steady_clock::time_point start = steady_clock::now();
@@ -135,12 +142,12 @@ void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, std::mutex&
         }
         percent = ((double) (sum) / (double) totalWork) * 100.0;
         isCompleted = (100.0 <= percent);
-        printf("\r%s%sProgress: %3.2f%c", CLEAR.c_str(), DEBUG.c_str(), percent, 37);
+        printf("%s%sProgress: %3.2f%c", CLEAR.c_str(), DEBUG.c_str(), percent, 37);
         printf(" (%d seconds)", (int) duration_cast<seconds>(steady_clock::now() - start).count());
         std::cout.flush();
         std::this_thread::sleep_for(milliseconds(150));
     }
-    printf("\r%s", CLEAR.c_str());
+    printf("%s", CLEAR.c_str());
 }
 
 /* Divide X number of seeds among Y number of threads */
@@ -149,7 +156,7 @@ std::vector <uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWor
     uint32_t work = sizeOfWork / numberOfWorkers;
     uint32_t leftover = sizeOfWork % numberOfWorkers;
     std::vector<uint32_t> labor(numberOfWorkers);
-    for (int index = 0; index < numberOfWorkers; ++index)
+    for (unsigned int index = 0; index < numberOfWorkers; ++index)
     {
         if (0 < leftover)
         {
@@ -167,7 +174,6 @@ std::vector <uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWor
 void SpawnThreads(const unsigned int threads, std::vector <Seed>* answers, uint32_t lowerBoundSeed,
         uint32_t upperBoundSeed, uint32_t depth, std::string rng)
 {
-    std::mutex workingMutex;
     bool isCompleted = false;  // Flag to tell threads to stop working
     std::cout << INFO << "Spawning " << threads << " worker thread(s) ..." << std::endl;
 
@@ -178,10 +184,11 @@ void SpawnThreads(const unsigned int threads, std::vector <Seed>* answers, uint3
     for (unsigned int id = 0; id < threads; ++id)
     {
         uint32_t endAt = startAt + labor.at(id);
-        pool[id] = std::thread(BruteForce, id, std::ref(workingMutex), std::ref(isCompleted), answers, status, startAt, endAt, depth, rng);
+        std::cout << INFO << "Thread #" << id << " (" << startAt << " -> " << endAt << ")" << std::endl;
+        pool[id] = std::thread(BruteForce, id, std::ref(isCompleted), answers, status, startAt, endAt, depth, rng);
         startAt += labor.at(id);
     }
-    StatusThread(std::ref(pool), std::ref(isCompleted), std::ref(workingMutex), upperBoundSeed - lowerBoundSeed, status);
+    StatusThread(pool, isCompleted, upperBoundSeed - lowerBoundSeed, status);
     for (unsigned int index = 0; index < pool.size(); ++index)
     {
         pool[index].join();
@@ -193,7 +200,7 @@ int main(int argc, char **argv)
     int c;
     unsigned int threads = 4;
     uint32_t lowerBoundSeed = 0;
-    uint32_t upperBoundSeed = ULONG_MAX;
+    uint32_t upperBoundSeed = UINT_MAX;
     uint32_t depth = 1000;
     std::string rng = "mt19937";
     uint32_t seed = 0;
