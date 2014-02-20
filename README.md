@@ -34,3 +34,13 @@ Untwister - Recover PRNG seeds from observed values.
     -t <threads>
         Spawn this many threads (default is 4)
 ```
+
+Example
+========
+```
+moloch@tethys ~/g/untwister> ./untwister -i test_ints.txt -t 4 -r mt19937
+[*] Looking for seed using mt19937
+[*] Spawning 4 worker thread(s) ...
+[*] Completed in 0 second(s)
+[$] Seed is 31337 with a confidence of 100%
+```
