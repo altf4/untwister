@@ -9,28 +9,28 @@
 
 GlibcRand::GlibcRand()
 {
-	seedValue = 0;
+    seedValue = 0;
 }
 
 GlibcRand::~GlibcRand() {}
 
 const std::string GlibcRand::getName()
 {
-	return "glibc-rand";
+    return GLIBC_RAND;
 }
 
 void GlibcRand::seed(uint32_t value)
 {
-	seedValue = value;
-	srand(value);
+    seedValue = value;
+    srand(value);
 }
 
 uint32_t GlibcRand::getSeed()
 {
-	return seedValue;
+    return seedValue;
 }
 
 uint32_t GlibcRand::random()
 {
-	return rand();
+    return rand();
 }

@@ -9,25 +9,23 @@
 #define GLIBCRAND_H_
 
 #include <random>
-
 #include "PRNG.h"
+
+static const std::string GLIBC_RAND = "glibc-rand";
 
 class GlibcRand: public PRNG
 {
 public:
-	GlibcRand();
-	virtual ~GlibcRand();
+    GlibcRand();
+    virtual ~GlibcRand();
 
-	using PRNG::getName;
-	using PRNG::seed;
-	using PRNG::random;
+    const std::string getName(void);
+    void seed(uint32_t value);
+    uint32_t getSeed(void);
+    uint32_t random(void);
 
-	const std::string getName(void);
-	void seed(uint32_t value);
-	uint32_t getSeed(void);
-	uint32_t random(void);
 private:
-	uint32_t seedValue;
+    uint32_t seedValue;
 };
 
 #endif /* GLIBCRAND_H_ */

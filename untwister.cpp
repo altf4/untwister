@@ -35,12 +35,12 @@ using std::chrono::milliseconds;
 using std::chrono::duration_cast;
 using std::chrono::steady_clock;
 
-//Pair of <seed, quality of fit>
+// Pair of <seed, quality of fit>
 typedef std::pair<uint32_t, double> Seed;
 static std::vector<uint32_t> observedOutputs;
 static const unsigned int ONE_YEAR = 31536000;
 
-void Usage()
+void Usage(PRNGFactory factory)
 {
     std::cout << BOLD << "Untwister" << RESET << " - Recover PRNG seeds from observed values." << std::endl;
     std::cout << "\t-i <input_file> [-d <depth> ] [-r <rng_alg>] [-g <seed>] [-t <threads>]\n" << std::endl;
@@ -51,8 +51,14 @@ void Usage()
     std::cout << "\t\tChoosing a higher depth value will make brute forcing take longer (linearly), but is " << std::endl;
     std::cout << "\t\trequired for cases where the generator has been used many times already." << std::endl;
     std::cout << "\t-r <rng_alg>\n\t\tThe RNG algorithm to use. Supported RNG algorithms:" << std::endl;
-    std::cout << "\t\t\tmt19937 (default)" << std::endl;
-    std::cout << "\t\t\tglibc-rand" << std::endl;
+    std::vector<const std::string> names = factory.getNames();
+    for (unsigned int index = 0; index < names.size(); ++index)
+    {
+        std::cout << "\t\t" << names[index];
+        if (index == 0)
+            std::cout << " (default)";
+        std::cout << std::endl;
+    }
     std::cout << "\t-u\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 " << std::endl;
     std::cout << "\t\tyear from the current time." << std::endl;
     std::cout << "\t-g <seed>\n\t\tGenerate a test set of random numbers from the given seed (at a random depth)" << std::endl;
@@ -66,8 +72,9 @@ void Usage()
 void BruteForce(const unsigned int id, bool& isCompleted, std::vector<Seed>* answers, std::vector<uint32_t>* status,
         uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
 {
-	PRNGFactory* factory = new PRNGFactory();
-    PRNG* generator = factory->getInstance(rng);
+    /* Each thread must have a local factory unless you like mutexes and/or segfaults */
+    PRNGFactory factory;
+    PRNG* generator = factory.getInstance(rng);
 
     for (uint32_t seedIndex = startingSeed; seedIndex <= endingSeed; ++seedIndex)
     {
@@ -101,15 +108,14 @@ void BruteForce(const unsigned int id, bool& isCompleted, std::vector<Seed>* ans
         }
     }
     delete generator;
-    delete factory;
 }
 
 void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
 {
-	PRNGFactory* factory = new PRNGFactory();
-    PRNG* generator = factory->getInstance(rng);
+    PRNGFactory factory;
+    PRNG* generator = factory.getInstance(rng);
     generator->seed(seed);
-    PRNG* distance_gen= factory->getInstance(rng);
+    PRNG* distance_gen= factory.getInstance(rng);
     distance_gen->seed(time(NULL));
     uint32_t distance = distance_gen->random() % (depth - 10);
 
@@ -125,7 +131,6 @@ void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
     }
     delete generator;
     delete distance_gen;
-    delete factory;
 }
 
 void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t totalWork,
@@ -184,7 +189,6 @@ void SpawnThreads(const unsigned int threads, std::vector <Seed>* answers, uint3
     for (unsigned int id = 0; id < threads; ++id)
     {
         uint32_t endAt = startAt + labor.at(id);
-        std::cout << INFO << "Thread #" << id << " (" << startAt << " -> " << endAt << ")" << std::endl;
         pool[id] = std::thread(BruteForce, id, std::ref(isCompleted), answers, status, startAt, endAt, depth, rng);
         startAt += labor.at(id);
     }
@@ -202,10 +206,11 @@ int main(int argc, char **argv)
     uint32_t lowerBoundSeed = 0;
     uint32_t upperBoundSeed = UINT_MAX;
     uint32_t depth = 1000;
-    std::string rng = "mt19937";
     uint32_t seed = 0;
+    PRNGFactory factory;
+    std::string rng = factory.getNames()[0];
 
-    while ((c = getopt(argc, argv, "d:i:g:t:r:u")) != -1)
+    while ((c = getopt(argc, argv, "d:i:g:t:r:uh")) != -1)
     {
         switch (c)
         {
@@ -223,6 +228,12 @@ int main(int argc, char **argv)
             case 'r':
             {
                 rng = optarg;
+                std::vector<const std::string> names = factory.getNames();
+                if (std::find(names.begin(), names.end(), rng) == names.end())
+                {
+                    std::cerr << WARN << "ERROR: Random number \"" << optarg << "\" is not supported" << std::endl;
+                    return EXIT_FAILURE;
+                }
                 break;
             }
             case 'd':
@@ -259,6 +270,11 @@ int main(int argc, char **argv)
                 }
                 break;
             }
+            case 'h':
+            {
+                Usage(factory);
+                return EXIT_SUCCESS;
+            }
             case '?':
             {
                 if (optopt == 'd')
@@ -267,12 +283,12 @@ int main(int argc, char **argv)
                    fprintf (stderr, "Unknown option `-%c'.\n", optopt);
                 else
                    fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
-                Usage();
+                Usage(factory);
                 return EXIT_FAILURE;
             }
             default:
             {
-                Usage();
+                Usage(factory);
                 return EXIT_FAILURE;
             }
         }
@@ -286,11 +302,12 @@ int main(int argc, char **argv)
 
     if (observedOutputs.empty())
     {
-        Usage();
+        Usage(factory);
         std::cerr << WARN << "ERROR: No input numbers provided. Use -i <file> to provide a file" << std::endl;
         return EXIT_FAILURE;
     }
 
+    std::cout << INFO << "Looking for seed using " << rng << std::endl;
     std::vector <Seed>* answers = new std::vector <Seed>;
     steady_clock::time_point elapsed = steady_clock::now();
     SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);

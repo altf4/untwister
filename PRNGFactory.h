@@ -22,14 +22,14 @@ typedef std::map<std::string, PRNG* (*)()> PRNGLibrary;
 class PRNGFactory
 {
 public:
-	PRNGFactory();
-	virtual ~PRNGFactory();
+    PRNGFactory();
+    virtual ~PRNGFactory();
 
-	PRNG* getInstance(std::string);
-	std::vector<std::string> getNames(void);
+    PRNG* getInstance(std::string);
+    std::vector<const std::string> getNames(void);
 
 private:
-	PRNGLibrary library;
+    PRNGLibrary library;
 };
 
 #endif /* PRNGFACTORY_H_ */
