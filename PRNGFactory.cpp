@@ -24,9 +24,8 @@ PRNG* PRNGFactory::getInstance(std::string name)
 
 std::vector<const std::string> PRNGFactory::getNames()
 {
-    PRNGLibrary::iterator iter;
     std::vector<const std::string> names;
-    for (iter = library.begin(); iter != library.end(); ++iter)
+    for (PRNGLibrary::iterator iter = library.begin(); iter != library.end(); ++iter)
     {
         names.push_back(iter->first);
     }

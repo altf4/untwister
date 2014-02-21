@@ -37,24 +37,25 @@ using std::chrono::steady_clock;
 
 // Pair of <seed, quality of fit>
 typedef std::pair<uint32_t, double> Seed;
+
 static std::vector<uint32_t> observedOutputs;
 static const unsigned int ONE_YEAR = 31536000;
 
 void Usage(PRNGFactory factory, unsigned int threads)
 {
     std::cout << BOLD << "Untwister" << RESET << " - Recover PRNG seeds from observed values." << std::endl;
-    std::cout << "\t-i <input_file> [-d <depth> ] [-r <rng_alg>] [-g <seed>] [-t <threads>]\n" << std::endl;
+    std::cout << "\t-i <input_file> [-d <depth> ] [-r <prng>] [-g <seed>] [-t <threads>]\n" << std::endl;
     std::cout << "\t-i <input_file>\n\t\tPath to file input file containing observed results of your RNG. The contents" << std::endl;
     std::cout << "\t\tare expected to be newline separated 32-bit integers. See test_input.txt for" << std::endl;
     std::cout << "\t\tan example." << std::endl;
     std::cout << "\t-d <depth>\n\t\tThe depth (default 1000) to inspect for each seed value when brute forcing." << std::endl;
-    std::cout << "\t\tChoosing a higher depth value will make brute forcing take longer (linearly), but is " << std::endl;
+    std::cout << "\t\tChoosing a higher depth value will make brute forcing take longer (linearly), but is" << std::endl;
     std::cout << "\t\trequired for cases where the generator has been used many times already." << std::endl;
-    std::cout << "\t-r <rng_alg>\n\t\tThe RNG algorithm to use. Supported RNG algorithms:" << std::endl;
+    std::cout << "\t-r <prng>\n\t\tThe PRNG algorithm to use. Supported PRNG algorithms:" << std::endl;
     std::vector<const std::string> names = factory.getNames();
     for (unsigned int index = 0; index < names.size(); ++index)
     {
-        std::cout << "\t\t" << names[index];
+        std::cout << "\t\t * " << names[index];
         if (index == 0)
             std::cout << " (default)";
         std::cout << std::endl;
@@ -143,7 +144,7 @@ void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t to
         {
             sum += status->at(index);
         }
-        percent = ((double) (sum) / (double) totalWork) * 100.0;
+        percent = ((double) sum / (double) totalWork) * 100.0;
         isCompleted = (100.0 <= percent);
         printf("%s%sProgress: %3.2f%c", CLEAR.c_str(), DEBUG.c_str(), percent, 37);
         printf(" (%d seconds)", (int) duration_cast<seconds>(steady_clock::now() - start).count());
@@ -191,28 +192,28 @@ void SpawnThreads(const unsigned int threads, std::vector <Seed> *answers, uint3
         startAt += labor.at(id);
     }
     StatusThread(pool, isCompleted, upperBoundSeed - lowerBoundSeed, status);
-    for (unsigned int index = 0; index < pool.size(); ++index)
+    for (unsigned int id = 0; id < pool.size(); ++id)
     {
-        pool[index].join();
+        pool[id].join();
     }
 }
 
 void FindSeed(const std::string& rng, unsigned int threads, uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth)
 {
-	std::cout << INFO << "Looking for seed using " << rng << std::endl;
-	std::vector<Seed>* answers = new std::vector<Seed>;
-	steady_clock::time_point elapsed = steady_clock::now();
-	SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);
-	std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - elapsed).count() << " second(s)" << std::endl;
-	for (unsigned int index = 0; index < answers->size(); ++index)
-	{
-		std::cout << SUCCESS << "Seed is " << answers->at(index).first;
-		std::cout << " with a confidence of " << answers->at(index).second << "%" << std::endl;
-	}
-	delete answers;
+    std::cout << INFO << "Looking for seed using " << rng << std::endl;
+    std::vector<Seed> *answers = new std::vector<Seed>;
+    steady_clock::time_point elapsed = steady_clock::now();
+    SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);
+    std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - elapsed).count() << " second(s)" << std::endl;
+    for (unsigned int index = 0; index < answers->size(); ++index)
+    {
+        std::cout << SUCCESS << "Seed is " << answers->at(index).first;
+        std::cout << " with a confidence of " << answers->at(index).second << "%" << std::endl;
+    }
+    delete answers;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
     int c;
     unsigned int threads = std::thread::hardware_concurrency();
@@ -244,7 +245,7 @@ int main(int argc, char **argv)
                 std::vector<const std::string> names = factory.getNames();
                 if (std::find(names.begin(), names.end(), rng) == names.end())
                 {
-                    std::cerr << WARN << "ERROR: Random number \"" << optarg << "\" is not supported" << std::endl;
+                    std::cerr << WARN << "ERROR: The PRNG \"" << optarg << "\" is not supported, see -h" << std::endl;
                     return EXIT_FAILURE;
                 }
                 break;
@@ -319,7 +320,9 @@ int main(int argc, char **argv)
         std::cerr << WARN << "ERROR: No input numbers provided. Use -i <file> to provide a file" << std::endl;
         return EXIT_FAILURE;
     }
+
     FindSeed(rng, threads, lowerBoundSeed, upperBoundSeed, depth);
+
     return EXIT_SUCCESS;
 }
 
