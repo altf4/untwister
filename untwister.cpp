@@ -55,7 +55,7 @@ void Usage(PRNGFactory factory, unsigned int threads)
     std::vector<const std::string> names = factory.getNames();
     for (unsigned int index = 0; index < names.size(); ++index)
     {
-        std::cout << "\t\t * " << names[index];
+        std::cout << "\t\t" << BOLD << " * " << RESET << names[index];
         if (index == 0)
             std::cout << " (default)";
         std::cout << std::endl;
@@ -69,12 +69,13 @@ void Usage(PRNGFactory factory, unsigned int threads)
 
 
 /* Yeah lots of parameters, but such is the life of a thread */
-void BruteForce(const unsigned int id, bool& isCompleted, std::vector<Seed> *answers, std::vector<uint32_t>* status,
+void BruteForce(const unsigned int id, bool& isCompleted, std::vector<std::vector<Seed>* > *answers, std::vector<uint32_t>* status,
         uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
 {
     /* Each thread must have a local factory unless you like mutexes and/or segfaults */
     PRNGFactory factory;
     PRNG *generator = factory.getInstance(rng);
+    answers->at(id) = new std::vector<Seed>;
 
     for (uint32_t seedIndex = startingSeed; seedIndex <= endingSeed; ++seedIndex)
     {
@@ -103,7 +104,7 @@ void BruteForce(const unsigned int id, bool& isCompleted, std::vector<Seed> *ans
         if (matchesFound == observedOutputs.size())
         {
             Seed seed = {seedIndex, 100};
-            answers->push_back(seed);
+            answers->at(id)->push_back(seed);
             isCompleted = true;
         }
     }
@@ -146,12 +147,13 @@ void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t to
         }
         percent = ((double) sum / (double) totalWork) * 100.0;
         isCompleted = (100.0 <= percent);
-        printf("%s%sProgress: %3.2f%c", CLEAR.c_str(), DEBUG.c_str(), percent, 37);
+        printf("%s%sProgress: %3.2f%c", CLEAR.c_str(), DEBUG.c_str(), percent, '%');
         printf(" (%d seconds)", (int) duration_cast<seconds>(steady_clock::now() - start).count());
         std::cout.flush();
         std::this_thread::sleep_for(milliseconds(150));
     }
-    printf("%s", CLEAR.c_str());
+    std::cout << CLEAR;
+    std::cout.flush();
 }
 
 /* Divide X number of seeds among Y number of threads */
@@ -164,18 +166,18 @@ std::vector <uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWor
     {
         if (0 < leftover)
         {
-            labor.at(index) = work + 1;
+            labor[index] = work + 1;
             --leftover;
         }
         else
         {
-            labor.at(index) = work;
+            labor[index] = work;
         }
     }
     return labor;
 }
 
-void SpawnThreads(const unsigned int threads, std::vector <Seed> *answers, uint32_t lowerBoundSeed,
+void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *answers, uint32_t lowerBoundSeed,
         uint32_t upperBoundSeed, uint32_t depth, std::string rng)
 {
     bool isCompleted = false;  // Flag to tell threads to stop working
@@ -201,14 +203,21 @@ void SpawnThreads(const unsigned int threads, std::vector <Seed> *answers, uint3
 void FindSeed(const std::string& rng, unsigned int threads, uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth)
 {
     std::cout << INFO << "Looking for seed using " << rng << std::endl;
-    std::vector<Seed> *answers = new std::vector<Seed>;
+
+    /* Each thread needs their own set of answers to avoid locking */
+    std::vector<std::vector<Seed>* > *answers = new std::vector<std::vector<Seed>* >(threads);
     steady_clock::time_point elapsed = steady_clock::now();
     SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);
     std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - elapsed).count() << " second(s)" << std::endl;
-    for (unsigned int index = 0; index < answers->size(); ++index)
+    for (unsigned int id = 0; id < answers->size(); ++id)
     {
-        std::cout << SUCCESS << "Seed is " << answers->at(index).first;
-        std::cout << " with a confidence of " << answers->at(index).second << "%" << std::endl;
+        /* Look for answers from each thread */
+        for (unsigned int index = 0; index < answers->at(id)->size(); ++index)
+        {
+            std::cout << SUCCESS << "Seed is " << answers->at(id)->at(index).first;
+            std::cout << " with a confidence of " << answers->at(id)->at(index).second << '%' << std::endl;
+        }
+        delete answers->at(id);
     }
     delete answers;
 }
@@ -292,11 +301,11 @@ int main(int argc, char *argv[])
             case '?':
             {
                 if (optopt == 'd')
-                   fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+                   std::cerr << "Option -" << optopt << " requires an argument." << std::endl;
                 else if (isprint(optopt))
-                   fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                   std::cerr << "Unknown option `-" << optopt << "'." << std::endl;
                 else
-                   fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
+                   std::cerr << "Unknown option character `" << optopt << "'." << std::endl;
                 Usage(factory, threads);
                 return EXIT_FAILURE;
             }
@@ -322,7 +331,6 @@ int main(int argc, char *argv[])
     }
 
     FindSeed(rng, threads, lowerBoundSeed, upperBoundSeed, depth);
-
     return EXIT_SUCCESS;
 }
 
