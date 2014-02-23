@@ -44,7 +44,7 @@ static const unsigned int ONE_YEAR = 31536000;
 void Usage(PRNGFactory factory, unsigned int threads)
 {
     std::cout << BOLD << "Untwister" << RESET << " - Recover PRNG seeds from observed values." << std::endl;
-    std::cout << "\t-i <input_file> [-d <depth> ] [-r <prng>] [-g <seed>] [-t <threads>]\n" << std::endl;
+    std::cout << "\t-i <input_file> [-d <depth> ] [-r <prng>] [-g <seed>] [-t <threads>] [-c <confidence>]\n" << std::endl;
     std::cout << "\t-i <input_file>\n\t\tPath to file input file containing observed results of your RNG. The contents" << std::endl;
     std::cout << "\t\tare expected to be newline separated 32-bit integers. See test_input.txt for" << std::endl;
     std::cout << "\t\tan example." << std::endl;
@@ -63,14 +63,16 @@ void Usage(PRNGFactory factory, unsigned int threads)
     std::cout << "\t-u\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 " << std::endl;
     std::cout << "\t\tyear from the current time." << std::endl;
     std::cout << "\t-g <seed>\n\t\tGenerate a test set of random numbers from the given seed (at a random depth)" << std::endl;
+    std::cout << "\t-c <confidence>\n\t\tSet the minimum confidence percentage to report" << std::endl;
     std::cout << "\t-t <threads>\n\t\tSpawn this many threads (default is " << threads << ")" << std::endl;
     std::cout << "" << std::endl;
 }
 
 
 /* Yeah lots of parameters, but such is the life of a thread */
-void BruteForce(const unsigned int id, bool& isCompleted, std::vector<std::vector<Seed>* > *answers, std::vector<uint32_t>* status,
-        uint32_t startingSeed, uint32_t endingSeed, uint32_t depth, std::string rng)
+void BruteForce(const unsigned int id, bool& isCompleted, std::vector<std::vector<Seed>* > *answers,
+        std::vector<uint32_t>* status, double minimumConfidence, uint32_t startingSeed, uint32_t endingSeed,
+        uint32_t depth, std::string rng)
 {
     /* Each thread must have a local factory unless you like mutexes and/or segfaults */
     PRNGFactory factory;
@@ -96,17 +98,21 @@ void BruteForce(const unsigned int id, bool& isCompleted, std::vector<std::vecto
                 }
             }
         }
+
         if (isCompleted)
         {
             break;  // Some other thread found the seed
         }
+
         status->at(id) = seedIndex - startingSeed;
-        if (matchesFound == observedOutputs.size())
+        double confidence = ((double) matchesFound / (double) observedOutputs.size()) * 100.0;
+        if (minimumConfidence <= confidence)
         {
-            Seed seed = {seedIndex, 100};
+            Seed seed = {seedIndex, confidence};
             answers->at(id)->push_back(seed);
-            isCompleted = true;
         }
+        if (matchesFound == observedOutputs.size())
+            isCompleted = true;  // We found the correct seed
     }
     delete generator;
 }
@@ -120,7 +126,7 @@ void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
     distance_gen->seed(time(NULL));
     uint32_t distance = distance_gen->random() % (depth - 10);
 
-    //Burn a bunch of random numbers
+    // Burn a bunch of random numbers
     for (uint32_t index = 0; index < distance; ++index)
     {
         generator->random();
@@ -157,7 +163,7 @@ void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t to
 }
 
 /* Divide X number of seeds among Y number of threads */
-std::vector <uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWorkers)
+std::vector<uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWorkers)
 {
     uint32_t work = sizeOfWork / numberOfWorkers;
     uint32_t leftover = sizeOfWork % numberOfWorkers;
@@ -177,8 +183,8 @@ std::vector <uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWor
     return labor;
 }
 
-void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *answers, uint32_t lowerBoundSeed,
-        uint32_t upperBoundSeed, uint32_t depth, std::string rng)
+void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *answers, double minimumConfidence,
+        uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth, std::string rng)
 {
     bool isCompleted = false;  // Flag to tell threads to stop working
     std::cout << INFO << "Spawning " << threads << " worker thread(s) ..." << std::endl;
@@ -190,7 +196,7 @@ void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *
     for (unsigned int id = 0; id < threads; ++id)
     {
         uint32_t endAt = startAt + labor.at(id);
-        pool[id] = std::thread(BruteForce, id, std::ref(isCompleted), answers, status, startAt, endAt, depth, rng);
+        pool[id] = std::thread(BruteForce, id, std::ref(isCompleted), answers, status, minimumConfidence, startAt, endAt, depth, rng);
         startAt += labor.at(id);
     }
     StatusThread(pool, isCompleted, upperBoundSeed - lowerBoundSeed, status);
@@ -200,22 +206,28 @@ void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *
     }
 }
 
-void FindSeed(const std::string& rng, unsigned int threads, uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth)
+void FindSeed(const std::string& rng, unsigned int threads, double miniumConfidence, uint32_t lowerBoundSeed,
+        uint32_t upperBoundSeed, uint32_t depth)
 {
     std::cout << INFO << "Looking for seed using " << rng << std::endl;
 
     /* Each thread needs their own set of answers to avoid locking */
     std::vector<std::vector<Seed>* > *answers = new std::vector<std::vector<Seed>* >(threads);
     steady_clock::time_point elapsed = steady_clock::now();
-    SpawnThreads(threads, answers, lowerBoundSeed, upperBoundSeed, depth, rng);
-    std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - elapsed).count() << " second(s)" << std::endl;
+    SpawnThreads(threads, answers, miniumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng);
+
+    std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - elapsed).count()
+              << " second(s)" << std::endl;
+
+    /* Display results */
     for (unsigned int id = 0; id < answers->size(); ++id)
     {
         /* Look for answers from each thread */
         for (unsigned int index = 0; index < answers->at(id)->size(); ++index)
         {
-            std::cout << SUCCESS << "Seed is " << answers->at(id)->at(index).first;
-            std::cout << " with a confidence of " << answers->at(id)->at(index).second << '%' << std::endl;
+            std::cout << SUCCESS << "Found seed " << answers->at(id)->at(index).first
+                      << " with a confidence of " << answers->at(id)->at(index).second
+                      << '%' << std::endl;
         }
         delete answers->at(id);
     }
@@ -230,10 +242,11 @@ int main(int argc, char *argv[])
     uint32_t upperBoundSeed = UINT_MAX;
     uint32_t depth = 1000;
     uint32_t seed = 0;
+    double minimumConfidence = 100.0;
     PRNGFactory factory;
     std::string rng = factory.getNames()[0];
 
-    while ((c = getopt(argc, argv, "d:i:g:t:r:uh")) != -1)
+    while ((c = getopt(argc, argv, "d:i:g:t:r:c:uh")) != -1)
     {
         switch (c)
         {
@@ -293,6 +306,16 @@ int main(int argc, char *argv[])
                 }
                 break;
             }
+            case 'c':
+            {
+                minimumConfidence = ::atof(optarg);
+                if (minimumConfidence <= 0 || 100.0 < minimumConfidence)
+                {
+                    std::cerr << WARN << "ERROR: Invalid confidence percentage " << std::endl;
+                    return EXIT_FAILURE;
+                }
+                break;
+            }
             case 'h':
             {
                 Usage(factory, threads);
@@ -330,7 +353,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    FindSeed(rng, threads, lowerBoundSeed, upperBoundSeed, depth);
+    FindSeed(rng, threads, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth);
     return EXIT_SUCCESS;
 }
 
