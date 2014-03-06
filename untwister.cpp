@@ -203,6 +203,8 @@ void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *
     {
         pool[id].join();
     }
+
+    delete status;
 }
 
 void FindSeed(const std::string& rng, unsigned int threads, double miniumConfidence, uint32_t lowerBoundSeed,
