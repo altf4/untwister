@@ -153,12 +153,12 @@ void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t to
         }
         percent = ((double) sum / (double) totalWork) * 100.0;
         isCompleted = (100.0 <= percent);
-        std::cout << "\rProgress: " << CLEAR.c_str() << DEBUG.c_str() << percent << "%";
-        std::cout << " (" << (int) duration_cast<seconds>(steady_clock::now() - start).count() << "seconds)";
+        std::cout << CLEAR << DEBUG << "Progress: " << percent << '%';
+        std::cout << " (" << (int) duration_cast<seconds>(steady_clock::now() - start).count() << " seconds)";
         std::cout.flush();
         std::this_thread::sleep_for(milliseconds(150));
     }
-    std::cout << "\r" << CLEAR.c_str();
+    std::cout << CLEAR;
 }
 
 /* Divide X number of seeds among Y number of threads */
