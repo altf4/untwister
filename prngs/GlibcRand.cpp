@@ -9,7 +9,7 @@
 
 GlibcRand::GlibcRand()
 {
-    seedValue = 0;
+    m_seedValue = 0;
 }
 
 GlibcRand::~GlibcRand() {}
@@ -21,16 +21,33 @@ const std::string GlibcRand::getName()
 
 void GlibcRand::seed(uint32_t value)
 {
-    seedValue = value;
+    m_seedValue = value;
     srand(value);
 }
 
 uint32_t GlibcRand::getSeed()
 {
-    return seedValue;
+    return m_seedValue;
 }
 
 uint32_t GlibcRand::random()
 {
     return rand();
 }
+
+uint32_t GlibcRand::getStateSize(void)
+{
+    return GLIBC_RAND_STATE_SIZE;
+}
+
+void GlibcRand::setState(std::vector<uint32_t> inState)
+{
+    m_state = inState;
+    m_state.resize(GLIBC_RAND_STATE_SIZE, 0);
+}
+
+std::vector<uint32_t> GlibcRand::getState(void)
+{
+    return m_state;
+}
+

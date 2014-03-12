@@ -12,6 +12,7 @@
 #include "PRNG.h"
 
 static const std::string RUBY_RAND = "ruby-rand";
+static const uint32_t RUBY_STATE_SIZE = 624;
 
 /* Period parameters */
 #define N 624
@@ -43,13 +44,16 @@ public:
     uint32_t getSeed(void);
     uint32_t random(void);
 
+    uint32_t getStateSize(void);
+    void setState(std::vector<uint32_t>);
+    std::vector<uint32_t> getState(void);
+
 private:
     void init_genrand(struct MT *mt, unsigned int s);
     void next_state(struct MT *mt);
     uint32_t genrand_int32(struct MT *mt);
 
-    MT *mt;
-    uint32_t seedValue;
+    MT *m_mt;
 };
 
 #endif /* RUBY_H_ */

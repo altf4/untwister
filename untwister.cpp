@@ -235,6 +235,35 @@ void FindSeed(const std::string& rng, unsigned int threads, double miniumConfide
     delete answers;
 }
 
+/* This is the "smarter" method of breaking RNGs. We use consecutive integers
+    to infer information about the internal state of the RNG. Using this 
+    method, however, we won't typically recover an actual seed value. 
+    But the effect is the same.
+*/
+bool InferState(const std::string& rng)
+{
+    std::cout << INFO << "Trying state inference" << std::endl;
+
+    PRNGFactory factory;
+    PRNG *generator = factory.getInstance(rng);
+    uint32_t stateSize = generator->getStateSize();
+
+    if(observedOutputs.size() <= stateSize)
+    {
+        std::cout << WARN << "Not enough observed values to perform state inference." << std::endl;
+        std::cout << WARN << "Try again with more than " << stateSize << " values" << std::endl;
+        return false;
+    } 
+
+    /* Guaranteed from the above to loop at least one time */
+    for(uint32_t i = 0; i < (observedOutputs.size() - stateSize); i++)
+    {
+        
+    }
+
+    return false;
+}
+
 int main(int argc, char *argv[])
 {
     int c;
@@ -352,6 +381,12 @@ int main(int argc, char *argv[])
         Usage(factory, threads);
         std::cerr << WARN << "ERROR: No input numbers provided. Use -i <file> to provide a file" << std::endl;
         return EXIT_FAILURE;
+    }
+
+
+    if(InferState(rng))
+    {
+        return EXIT_SUCCESS;
     }
 
     FindSeed(rng, threads, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth);

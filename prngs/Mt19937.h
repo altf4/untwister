@@ -12,6 +12,7 @@
 #include "PRNG.h"
 
 static const std::string MT19937 = "mt19937";
+static const uint32_t MT19937_STATE_SIZE = 624;
 
 class Mt19937: public PRNG
 {
@@ -24,8 +25,11 @@ public:
     uint32_t getSeed(void);
     uint32_t random(void);
 
+    uint32_t getStateSize(void);
+    void setState(std::vector<uint32_t>);
+    std::vector<uint32_t> getState(void);
+
 private:
-    uint32_t seedValue;
     std::mt19937 generator;
 };
 

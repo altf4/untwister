@@ -12,6 +12,7 @@
 #include "PRNG.h"
 
 static const std::string GLIBC_RAND = "glibc-rand";
+static const uint32_t GLIBC_RAND_STATE_SIZE = 32;
 
 class GlibcRand: public PRNG
 {
@@ -24,8 +25,10 @@ public:
     uint32_t getSeed(void);
     uint32_t random(void);
 
-private:
-    uint32_t seedValue;
+    uint32_t getStateSize(void);
+    void setState(std::vector<uint32_t> inState);
+    std::vector<uint32_t> getState(void);
+
 };
 
 #endif /* GLIBCRAND_H_ */
