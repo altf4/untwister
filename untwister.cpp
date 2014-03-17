@@ -235,7 +235,8 @@ void FindSeed(const std::string& rng, unsigned int threads, double miniumConfide
     delete answers;
 }
 
-/* This is the "smarter" method of breaking RNGs. We use consecutive integers
+/* 
+    This is the "smarter" method of breaking RNGs. We use consecutive integers
     to infer information about the internal state of the RNG. Using this 
     method, however, we won't typically recover an actual seed value. 
     But the effect is the same.
@@ -253,12 +254,60 @@ bool InferState(const std::string& rng)
         std::cout << WARN << "Not enough observed values to perform state inference." << std::endl;
         std::cout << WARN << "Try again with more than " << stateSize << " values" << std::endl;
         return false;
-    } 
+    }
 
     /* Guaranteed from the above to loop at least one time */
+    std::vector<double> scores;
     for(uint32_t i = 0; i < (observedOutputs.size() - stateSize); i++)
     {
+        std::vector<uint32_t>::const_iterator first = observedOutputs.begin() + i;
+        std::vector<uint32_t>::const_iterator last = observedOutputs.begin() + i + stateSize;
+        std::vector<uint32_t> state(first, last);
+
+        /* Make predictions based on the state */
+        generator->setState(state);
+        std::vector<uint32_t> predictions_forward = 
+            generator->predictForward(((observedOutputs.size() - stateSize) - i) * 5);
+        std::vector<uint32_t> predictions_backward = 
+            generator->predictBackward(i * 5);
+
+        /* Test the prediction against the rest of the observed data */
+        /* Forward */
+        uint32_t matchesFound = 0;
+        uint32_t index_pred = 0;
+        uint32_t index_obs = i + stateSize;
+        while(index_obs < observedOutputs.size() && index_pred < predictions_forward.size())
+        {
+            if(observedOutputs[index_obs] == predictions_forward[index_pred])
+            {
+                matchesFound++;
+                index_obs++;
+            }
+            index_pred++;
+        }        
         
+        /* Backward */
+        index_pred = 0;
+        index_obs = i;
+        while(index_obs > 0 && index_pred < predictions_forward.size())
+        {
+            if(observedOutputs[index_obs] == predictions_forward[index_pred])
+            {
+                matchesFound++;
+                index_obs--;
+            }
+            index_pred++;
+        } 
+
+        double score = (double)matchesFound / (double)(observedOutputs.size() - stateSize);
+        scores.push_back(score);
+    }
+
+    /* Analyze scores */
+    //TODO
+    for(uint32_t i = 0; i < scores.size(); i++)
+    {
+        std::cout << INFO << i << " : " << scores[i] << std::endl;
     }
 
     return false;
@@ -382,7 +431,6 @@ int main(int argc, char *argv[])
         std::cerr << WARN << "ERROR: No input numbers provided. Use -i <file> to provide a file" << std::endl;
         return EXIT_FAILURE;
     }
-
 
     if(InferState(rng))
     {

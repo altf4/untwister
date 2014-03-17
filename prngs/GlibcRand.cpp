@@ -9,7 +9,7 @@
 
 GlibcRand::GlibcRand()
 {
-    m_seedValue = 0;
+    seedValue = 0;
 }
 
 GlibcRand::~GlibcRand() {}
@@ -21,13 +21,13 @@ const std::string GlibcRand::getName()
 
 void GlibcRand::seed(uint32_t value)
 {
-    m_seedValue = value;
+    seedValue = value;
     srand(value);
 }
 
 uint32_t GlibcRand::getSeed()
 {
-    return m_seedValue;
+    return seedValue;
 }
 
 uint32_t GlibcRand::random()
@@ -49,5 +49,19 @@ void GlibcRand::setState(std::vector<uint32_t> inState)
 std::vector<uint32_t> GlibcRand::getState(void)
 {
     return m_state;
+}
+
+std::vector<uint32_t> GlibcRand::predictForward(uint32_t)
+{
+    std::vector<uint32_t> ret;
+    //TODO
+    return ret;
+}
+
+std::vector<uint32_t> GlibcRand::predictBackward(uint32_t)
+{
+    std::vector<uint32_t> ret;
+    //TODO
+    return ret;
 }
 

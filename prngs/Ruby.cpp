@@ -5,15 +5,13 @@
  *      Author: moloch
  */
 
-#include <vector>
-
 #include "Ruby.h"
 
 Ruby::Ruby()
 {
-    m_seedValue = 0;
-    m_mt = new MT;
-    init_genrand(m_mt, m_seedValue);
+    seedValue = 0;
+    mt = new MT;
+    init_genrand(mt, seedValue);
 }
 
 Ruby::~Ruby() {}
@@ -25,19 +23,19 @@ const std::string Ruby::getName()
 
 void Ruby::seed(uint32_t value)
 {
-    m_mt = new MT;
-    m_seedValue = value;
-    init_genrand(m_mt, value);
+    mt = new MT;
+    seedValue = value;
+    init_genrand(mt, value);
 }
 
 uint32_t Ruby::getSeed()
 {
-    return m_seedValue;
+    return seedValue;
 }
 
 uint32_t Ruby::random()
 {
-    return genrand_int32(m_mt);
+    return genrand_int32(mt);
 }
 
 
@@ -105,5 +103,19 @@ void Ruby::setState(std::vector<uint32_t> inState)
 std::vector<uint32_t> Ruby::getState(void)
 {
     return m_state;
+}
+
+std::vector<uint32_t> Ruby::predictForward(uint32_t)
+{
+    std::vector<uint32_t> ret;
+    //TODO
+    return ret;
+}
+
+std::vector<uint32_t> Ruby::predictBackward(uint32_t)
+{
+    std::vector<uint32_t> ret;
+    //TODO
+    return ret;
 }
 

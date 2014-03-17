@@ -29,7 +29,11 @@ public:
     void setState(std::vector<uint32_t>);
     std::vector<uint32_t> getState(void);
 
+    std::vector<uint32_t> predictForward(uint32_t);
+    std::vector<uint32_t> predictBackward(uint32_t);
+
 private:
+    uint32_t seedValue;
     std::mt19937 generator;
 };
 

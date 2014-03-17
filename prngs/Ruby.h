@@ -48,12 +48,16 @@ public:
     void setState(std::vector<uint32_t>);
     std::vector<uint32_t> getState(void);
 
+    std::vector<uint32_t> predictForward(uint32_t);
+    std::vector<uint32_t> predictBackward(uint32_t);
+
 private:
     void init_genrand(struct MT *mt, unsigned int s);
     void next_state(struct MT *mt);
     uint32_t genrand_int32(struct MT *mt);
 
-    MT *m_mt;
+    MT *mt;
+    uint32_t seedValue;
 };
 
 #endif /* RUBY_H_ */

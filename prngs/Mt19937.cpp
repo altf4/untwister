@@ -9,7 +9,7 @@
 
 Mt19937::Mt19937()
 {
-    m_seedValue = generator.default_seed;
+    seedValue = generator.default_seed;
 }
 
 Mt19937::~Mt19937() {}
@@ -21,13 +21,13 @@ const std::string Mt19937::getName()
 
 void Mt19937::seed(uint32_t value)
 {
-    m_seedValue = value;
+    seedValue = value;
     this->generator.seed(value);
 }
 
 uint32_t Mt19937::getSeed()
 {
-    return m_seedValue;
+    return seedValue;
 }
 
 uint32_t Mt19937::random(void)
@@ -49,5 +49,19 @@ void Mt19937::setState(std::vector<uint32_t> inState)
 std::vector<uint32_t> Mt19937::getState(void)
 {
     return m_state;
+}
+
+std::vector<uint32_t> Mt19937::predictForward(uint32_t)
+{
+    std::vector<uint32_t> ret;
+    //TODO
+    return ret;
+}
+
+std::vector<uint32_t> Mt19937::predictBackward(uint32_t)
+{
+    std::vector<uint32_t> ret;
+    //TODO
+    return ret;
 }
 

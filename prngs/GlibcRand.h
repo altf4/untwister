@@ -25,9 +25,14 @@ public:
     uint32_t getSeed(void);
     uint32_t random(void);
 
+private:
+    uint32_t seedValue;
     uint32_t getStateSize(void);
     void setState(std::vector<uint32_t> inState);
     std::vector<uint32_t> getState(void);
+
+    std::vector<uint32_t> predictForward(uint32_t);
+    std::vector<uint32_t> predictBackward(uint32_t);
 
 };
 
