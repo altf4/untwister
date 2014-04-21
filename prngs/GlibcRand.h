@@ -33,6 +33,7 @@ private:
 
     std::vector<uint32_t> predictForward(uint32_t);
     std::vector<uint32_t> predictBackward(uint32_t);
+    void tune(std::vector<uint32_t>, std::vector<uint32_t>);
 
 };
 

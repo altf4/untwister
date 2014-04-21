@@ -119,3 +119,8 @@ std::vector<uint32_t> Ruby::predictBackward(uint32_t)
     return ret;
 }
 
+void Ruby::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t> evidenceBackward)
+{
+    //TODO
+}
+

@@ -65,3 +65,8 @@ std::vector<uint32_t> Mt19937::predictBackward(uint32_t)
     return ret;
 }
 
+void Mt19937::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t> evidenceBackward)
+{
+    //TODO
+}
+

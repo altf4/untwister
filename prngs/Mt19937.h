@@ -31,6 +31,7 @@ public:
 
     std::vector<uint32_t> predictForward(uint32_t);
     std::vector<uint32_t> predictBackward(uint32_t);
+    void tune(std::vector<uint32_t>, std::vector<uint32_t>);
 
 private:
     uint32_t seedValue;
