@@ -63,7 +63,7 @@ std::vector<uint32_t> GlibcRand::getState(void)
 std::vector<uint32_t> GlibcRand::predictForward(uint32_t length)
 {
     std::vector<uint32_t> running_state = m_state;
-    running_state.resize(getStateSize() + length);
+    running_state.resize(GLIBC_RAND_STATE_SIZE + length);
 
     std::vector<uint32_t> ret;
     
@@ -82,15 +82,15 @@ std::vector<uint32_t> GlibcRand::predictForward(uint32_t length)
 std::vector<uint32_t> GlibcRand::predictBackward(uint32_t length)
 {
     std::vector<uint32_t> running_state = m_state;
-    running_state.resize(getStateSize() + length);
     /* Reverse order for simplicity. Deal with it. */
     std::reverse(running_state.begin(), running_state.end());
+    running_state.resize(GLIBC_RAND_STATE_SIZE + length);
 
     std::vector<uint32_t> ret;
     
     /* There is a more memory efficient way to do this. With a 
         linked list for the state. But meh.  */
-    for(uint32_t i = 32; i < length + 32; i++)
+    for(uint32_t i = GLIBC_RAND_STATE_SIZE; i < length + GLIBC_RAND_STATE_SIZE; i++)
     {
         uint32_t val = running_state[i-31] - running_state[i-28];
         running_state[i] = val;
@@ -104,6 +104,6 @@ std::vector<uint32_t> GlibcRand::predictBackward(uint32_t length)
 
 void GlibcRand::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t> evidenceBackward)
 {
-    
+
 }
 

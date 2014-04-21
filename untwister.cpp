@@ -298,14 +298,6 @@ bool InferState(const std::string& rng)
             index_pred++;
         }
 
-        //DELETEMELATER**********************
-        std::cout << DEBUG << "predictions_backward " << i << std::endl; 
-        for(int j = 0; j < predictions_backward.size(); j++)
-        {
-            std::cout << DEBUG << predictions_backward[j] << std::endl;
-        }
-        //DELETEMELATER**********************
-
         double score = (double)(matchesFound*100) / (double)(observedOutputs.size() - stateSize);
         scores.push_back(score);
     }
