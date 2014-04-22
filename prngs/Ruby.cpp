@@ -124,3 +124,8 @@ void Ruby::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t> evi
     //TODO
 }
 
+void Ruby::setEvidence(std::vector<uint32_t>)
+{
+
+}
+

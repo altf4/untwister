@@ -263,6 +263,7 @@ bool InferState(const std::string& rng)
         generator->setState(state);
 
         /* Provide additional evidence for tuning on PRNGs that require it */
+        generator->setEvidence(observedOutputs);
         generator->tune(evidenceForward, evidenceBackward);
 
         std::vector<uint32_t> predictions_forward = 
@@ -283,8 +284,8 @@ bool InferState(const std::string& rng)
                 index_obs++;
             }
             index_pred++;
-        }        
-        
+        }
+
         /* Backward */
         index_pred = 0;
         index_obs = i;
@@ -300,6 +301,8 @@ bool InferState(const std::string& rng)
 
         double score = (double)(matchesFound*100) / (double)(observedOutputs.size() - stateSize);
         scores.push_back(score);
+
+        break;
     }
 
     /* Analyze scores */

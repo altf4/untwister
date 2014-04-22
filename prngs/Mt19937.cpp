@@ -70,3 +70,8 @@ void Mt19937::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t> 
     //TODO
 }
 
+void Mt19937::setEvidence(std::vector<uint32_t>)
+{
+
+}
+
