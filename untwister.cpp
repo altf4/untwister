@@ -117,27 +117,18 @@ void BruteForce(const unsigned int id, bool& isCompleted, std::vector<std::vecto
     delete generator;
 }
 
+/* For easier testing, will generate a series of random numbers at a given seed */
 void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
 {
     PRNGFactory factory;
     PRNG *generator = factory.getInstance(rng);
     generator->seed(seed);
-    PRNG *distance_gen= factory.getInstance(rng);
-    distance_gen->seed(time(NULL));
-    uint32_t distance = distance_gen->random() % (depth - 10);
 
-    // Burn a bunch of random numbers
-    for (uint32_t index = 0; index < distance; ++index)
-    {
-        generator->random();
-    }
-
-    for (unsigned int index = 0; index < 10; ++index)
+    for (unsigned int index = 0; index < depth; ++index)
     {
         std::cout << generator->random() << std::endl;
     }
     delete generator;
-    delete distance_gen;
 }
 
 void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t totalWork, std::vector<uint32_t> *status)
@@ -210,7 +201,7 @@ void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *
 void FindSeed(const std::string& rng, unsigned int threads, double miniumConfidence, uint32_t lowerBoundSeed,
         uint32_t upperBoundSeed, uint32_t depth)
 {
-    std::cout << INFO << "Looking for seed using " << rng << std::endl;
+    std::cout << INFO << "Brute Forcing for seed using " << rng << std::endl;
 
     /* Each thread needs their own set of answers to avoid locking */
     std::vector<std::vector<Seed>* > *answers = new std::vector<std::vector<Seed>* >(threads);
@@ -256,8 +247,11 @@ bool InferState(const std::string& rng)
         return false;
     }
 
+    double highscore = 0.0;
+
     /* Guaranteed from the above to loop at least one time */
     std::vector<double> scores;
+    std::vector<uint32_t> best_state;
     for(uint32_t i = 0; i < (observedOutputs.size() - stateSize); i++)
     {
         std::vector<uint32_t>::const_iterator first = observedOutputs.begin() + i;
@@ -265,11 +259,20 @@ bool InferState(const std::string& rng)
         std::vector<uint32_t> state(first, last);
 
         /* Make predictions based on the state */
+        std::vector<uint32_t> evidenceForward
+            ((std::vector<uint32_t>::const_iterator)observedOutputs.begin(), first);
+        std::vector<uint32_t> evidenceBackward
+            (last+1, (std::vector<uint32_t>::const_iterator)observedOutputs.end());
         generator->setState(state);
+
+        /* Provide additional evidence for tuning on PRNGs that require it */
+        generator->setEvidence(observedOutputs);
+        generator->tune(evidenceForward, evidenceBackward);
+
         std::vector<uint32_t> predictions_forward = 
-            generator->predictForward(((observedOutputs.size() - stateSize) - i) * 5);
+            generator->predictForward(((observedOutputs.size() - stateSize) - i));
         std::vector<uint32_t> predictions_backward = 
-            generator->predictBackward(i * 5);
+            generator->predictBackward(i);
 
         /* Test the prediction against the rest of the observed data */
         /* Forward */
@@ -284,30 +287,64 @@ bool InferState(const std::string& rng)
                 index_obs++;
             }
             index_pred++;
-        }        
-        
+        }
+
         /* Backward */
         index_pred = 0;
         index_obs = i;
-        while(index_obs > 0 && index_pred < predictions_forward.size())
+        while(index_obs > 0 && index_pred < predictions_backward.size())
         {
-            if(observedOutputs[index_obs] == predictions_forward[index_pred])
+            if(observedOutputs[index_obs] == predictions_backward[index_pred])
             {
                 matchesFound++;
                 index_obs--;
             }
             index_pred++;
-        } 
+        }
 
-        double score = (double)matchesFound / (double)(observedOutputs.size() - stateSize);
+        /* If we get a perfect guess, then try reversing out the seed, and exit */
+        if(matchesFound == (observedOutputs.size() - stateSize))
+        {
+            uint32_t outSeed = 0;
+            if(generator->reverseToSeed(&outSeed, 10000))
+            {
+                /* We win! */
+                std::cout << SUCCESS << "Found seed " << outSeed << std::endl;
+            }
+            else
+            {
+                std::cout << SUCCESS << "Found state: " << std::endl;
+                std::vector<uint32_t> state = generator->getState();
+                for(uint32_t j = 0; j < state.size(); j++)
+                {
+                    std::cout << SUCCESS << state[j] << std::endl;
+                }
+            }
+            return true;
+        }
+
+        double score = (double)(matchesFound*100) / (double)(observedOutputs.size() - stateSize);
         scores.push_back(score);
+        if(score > highscore)
+        {
+            best_state = generator->getState();
+        }
     }
 
     /* Analyze scores */
     //TODO
-    for(uint32_t i = 0; i < scores.size(); i++)
+    if(highscore > 0)
     {
-        std::cout << INFO << i << " : " << scores[i] << std::endl;
+        std::cout << SUCCESS << "Best state guess, with confidence of: " << highscore << "%" << std::endl;
+        std::vector<uint32_t> state = generator->getState();
+        for(uint32_t j = 0; j < state.size(); j++)
+        {
+            std::cout << SUCCESS << state[j] << std::endl;
+        }
+    }
+    else
+    {
+        std::cout << INFO << "State Inference failed" << std::endl;
     }
 
     return false;

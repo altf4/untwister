@@ -29,8 +29,13 @@ public:
     void setState(std::vector<uint32_t>);
     std::vector<uint32_t> getState(void);
 
+    void setEvidence(std::vector<uint32_t>);
+
     std::vector<uint32_t> predictForward(uint32_t);
     std::vector<uint32_t> predictBackward(uint32_t);
+    void tune(std::vector<uint32_t>, std::vector<uint32_t>);
+
+    bool reverseToSeed(uint32_t *, uint32_t);
 
 private:
     uint32_t seedValue;
