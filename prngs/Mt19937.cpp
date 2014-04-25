@@ -65,6 +65,13 @@ std::vector<uint32_t> Mt19937::predictBackward(uint32_t)
     return ret;
 }
 
+
+bool Mt19937::reverseToSeed(uint32_t *outSeed, uint32_t depth)
+{
+    //TODO
+    return false;
+}
+
 void Mt19937::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t> evidenceBackward)
 {
     //TODO

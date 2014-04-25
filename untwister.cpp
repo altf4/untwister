@@ -201,7 +201,7 @@ void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *
 void FindSeed(const std::string& rng, unsigned int threads, double miniumConfidence, uint32_t lowerBoundSeed,
         uint32_t upperBoundSeed, uint32_t depth)
 {
-    std::cout << INFO << "Looking for seed using " << rng << std::endl;
+    std::cout << INFO << "Brute Forcing for seed using " << rng << std::endl;
 
     /* Each thread needs their own set of answers to avoid locking */
     std::vector<std::vector<Seed>* > *answers = new std::vector<std::vector<Seed>* >(threads);
@@ -247,8 +247,11 @@ bool InferState(const std::string& rng)
         return false;
     }
 
+    double highscore = 0.0;
+
     /* Guaranteed from the above to loop at least one time */
     std::vector<double> scores;
+    std::vector<uint32_t> best_state;
     for(uint32_t i = 0; i < (observedOutputs.size() - stateSize); i++)
     {
         std::vector<uint32_t>::const_iterator first = observedOutputs.begin() + i;
@@ -299,17 +302,49 @@ bool InferState(const std::string& rng)
             index_pred++;
         }
 
+        /* If we get a perfect guess, then try reversing out the seed, and exit */
+        if(matchesFound == (observedOutputs.size() - stateSize))
+        {
+            uint32_t outSeed = 0;
+            if(generator->reverseToSeed(&outSeed, 10000))
+            {
+                /* We win! */
+                std::cout << SUCCESS << "Found seed " << outSeed << std::endl;
+            }
+            else
+            {
+                std::cout << SUCCESS << "Found state: " << std::endl;
+                std::vector<uint32_t> state = generator->getState();
+                for(uint32_t j = 0; j < state.size(); j++)
+                {
+                    std::cout << SUCCESS << state[j] << std::endl;
+                }
+            }
+            return true;
+        }
+
         double score = (double)(matchesFound*100) / (double)(observedOutputs.size() - stateSize);
         scores.push_back(score);
-
-        break;
+        if(score > highscore)
+        {
+            best_state = generator->getState();
+        }
     }
 
     /* Analyze scores */
     //TODO
-    for(uint32_t i = 0; i < scores.size(); i++)
+    if(highscore > 0)
     {
-        std::cout << INFO << "Window: " << i << " : " << scores[i] << "%" << std::endl;
+        std::cout << SUCCESS << "Best state guess, with confidence of: " << highscore << "%" << std::endl;
+        std::vector<uint32_t> state = generator->getState();
+        for(uint32_t j = 0; j < state.size(); j++)
+        {
+            std::cout << SUCCESS << state[j] << std::endl;
+        }
+    }
+    else
+    {
+        std::cout << INFO << "State Inference failed" << std::endl;
     }
 
     return false;

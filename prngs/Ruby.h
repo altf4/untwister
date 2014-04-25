@@ -54,6 +54,8 @@ public:
     std::vector<uint32_t> predictBackward(uint32_t);
     void tune(std::vector<uint32_t>, std::vector<uint32_t>);
 
+    bool reverseToSeed(uint32_t *, uint32_t);
+
 private:
     void init_genrand(struct MT *mt, unsigned int s);
     void next_state(struct MT *mt);

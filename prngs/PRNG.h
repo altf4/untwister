@@ -28,6 +28,7 @@ public:
     virtual std::vector<uint32_t> predictForward(uint32_t) = 0;
     virtual std::vector<uint32_t> predictBackward(uint32_t) = 0;
     virtual void tune(std::vector<uint32_t>, std::vector<uint32_t>) = 0;
+    virtual bool reverseToSeed(uint32_t *, uint32_t) = 0;
 
     virtual ~PRNG(){};
 

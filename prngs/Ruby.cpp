@@ -119,6 +119,11 @@ std::vector<uint32_t> Ruby::predictBackward(uint32_t)
     return ret;
 }
 
+bool Ruby::reverseToSeed(uint32_t *outSeed, uint32_t depth)
+{
+    return false;
+}
+
 void Ruby::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t> evidenceBackward)
 {
     //TODO

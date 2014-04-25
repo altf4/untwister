@@ -9,18 +9,12 @@
 #define GLIBCRAND_H_
 
 #include <random>
+#include <deque>
 #include "PRNG.h"
+#include "LSBState.h"
 
 static const std::string GLIBC_RAND = "glibc-rand";
 static const uint32_t GLIBC_RAND_STATE_SIZE = 32;
-
-/* Tristate representing if LSB is good */
-enum LSBGuess
-{
-    LSB_CORRECT,
-    LSB_WRONG,
-    LSB_UNKNOWN
-};
 
 class GlibcRand: public PRNG
 {
@@ -44,13 +38,21 @@ private:
     std::vector<uint32_t> predictForward(uint32_t);
     std::vector<uint32_t> predictBackward(uint32_t);
 
+    bool setLSB(uint32_t index, uint32_t value);
+    void setLSBxor(uint32_t index1, uint32_t index2);
+    void setLSBor(uint32_t index1, uint32_t index2);
+    bool handleRemainder(uint32_t index, std::vector<uint32_t>);
+
     void tune(std::vector<uint32_t>, std::vector<uint32_t>);
     void tune_repeatedIncrements();
-    void tune_fuzzyGuessing();
-    void tune_checkLSBs();
+    void tune_chainChecking();
+
+    bool isInitState(std::deque<uint32_t> *);
+
+    bool reverseToSeed(uint32_t *, uint32_t);
 
     /* Keeps track of what LSBs are known */
-    std::vector<LSBGuess> m_LSBMap;
+    std::vector<LSBState> m_LSBMap;
 };
 
 #endif /* GLIBCRAND_H_ */
