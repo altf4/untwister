@@ -36,4 +36,11 @@ Untwister - Recover PRNG seeds from observed values.
         Generate a test set of random numbers from the given seed (at a random depth)
     -t <threads>
         Spawn this many threads (default is your number of CPUs)
+
+Examples:
+    Cracking a list of random numbers in test_ints.txt
+        ./untwister -i test_ints.txt
+
+    Generating 70 random numbers from seed 1234, using glibc-rand
+        ./untwister -d 70 -g 1234 -r glibc-rand
 ```
