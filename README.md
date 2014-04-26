@@ -43,4 +43,7 @@ Examples:
 
     Generating 70 random numbers from seed 1234, using glibc-rand
         ./untwister -d 70 -g 1234 -r glibc-rand
+
+    Generating 90 random numbers from state file saved in state.txt
+        ./untwister -d 90 -g -i state.txt
 ```

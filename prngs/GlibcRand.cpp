@@ -381,7 +381,6 @@ bool GlibcRand::reverseToSeed(uint32_t *outSeed, uint32_t depth)
 void GlibcRand::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t> evidenceBackward)
 {
     tune_chainChecking();
-    //tune_fuzzyGuessing();
     tune_repeatedIncrements();
 }
 

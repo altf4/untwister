@@ -131,6 +131,20 @@ void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
     delete generator;
 }
 
+/* For easier testing, will generate a series of random numbers at a given seed */
+void GenerateSample(std::vector<uint32_t> state, uint32_t depth, std::string rng)
+{
+    PRNGFactory factory;
+    PRNG *generator = factory.getInstance(rng);
+    generator->setState(state);
+
+    for (unsigned int index = 0; index < depth; ++index)
+    {
+        std::cout << generator->random() << std::endl;
+    }
+    delete generator;
+}
+
 void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t totalWork, std::vector<uint32_t> *status)
 {
     double percent = 0;
@@ -317,7 +331,7 @@ bool InferState(const std::string& rng)
                 std::vector<uint32_t> state = generator->getState();
                 for(uint32_t j = 0; j < state.size(); j++)
                 {
-                    std::cout << SUCCESS << state[j] << std::endl;
+                    std::cout << state[j] << std::endl;
                 }
             }
             return true;
@@ -358,6 +372,7 @@ int main(int argc, char *argv[])
     uint32_t upperBoundSeed = UINT_MAX;
     uint32_t depth = 1000;
     uint32_t seed = 0;
+    bool generateFlag = false;
     double minimumConfidence = 100.0;
     PRNGFactory factory;
     std::string rng = factory.getNames()[0];
@@ -369,6 +384,7 @@ int main(int argc, char *argv[])
             case 'g':
             {
                 seed = strtoul(optarg, NULL, 10);
+                generateFlag = true;
                 break;
             }
             case 'u':
@@ -408,7 +424,7 @@ int main(int argc, char *argv[])
                 std::string line;
                 while (std::getline(infile, line))
                 {
-                    observedOutputs.push_back(strtoul(line.c_str(), NULL, 10));
+                    observedOutputs.push_back(strtoul(line.c_str(), NULL, 0));
                 }
                 break;
             }
@@ -456,13 +472,21 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (seed != 0)
+    if(generateFlag)
     {
-        GenerateSample(seed, depth, rng);
-        return EXIT_SUCCESS;
+        if(observedOutputs.empty())
+        {
+            GenerateSample(seed, depth, rng);
+            return EXIT_SUCCESS;
+        }
+        else
+        {
+            GenerateSample(observedOutputs, depth, rng);
+            return EXIT_SUCCESS;
+        }
     }
 
-    if (observedOutputs.empty())
+    if(observedOutputs.empty())
     {
         Usage(factory, threads);
         std::cerr << WARN << "ERROR: No input numbers provided. Use -i <file> to provide a file" << std::endl;
