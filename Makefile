@@ -24,7 +24,7 @@ python:
 	g++ $(CPPFLAGS) -MF"PRNGFactory.d" -MT"PRNGFactory.d" -o "PRNGFactory.o" "./PRNGFactory.cpp"
 
 	g++ -std=c++11 -I$(PYTHON) -I$(BOOST_INC) -c -fPIC py-untwister.cpp -o py-untwister.o
-	g++ -std=c++11 -shared -Wl ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o py-untwister.o \
+	g++ -std=c++11 -shared ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o py-untwister.o \
 		-lboost_python -lpython2.7 -o untwister.so
 
 clean:
