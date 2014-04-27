@@ -8,7 +8,8 @@
 
 #include <python2.7/Python.h>
 #include <boost/python.hpp>
-#include <thread>
+#include <execinfo.h>
+#include <signal.h>
 
 #include "untwister.h"
 
@@ -16,10 +17,20 @@ using namespace boost::python;
 
 static const unsigned int TRACE_SIZE = 10;
 
+/* Segfault handler */
+void handler(int sig) {
+    void *trace[TRACE_SIZE];
+    size_t size;
+    size = backtrace(trace, TRACE_SIZE);
+    fprintf(stderr, "Error: signal %d:\n", sig);
+    backtrace_symbols_fd(trace, size, 2);
+    exit(1);
+}
 
 /* Python __init__ function */
-void python_init()
+void PythonInit()
 {
+    signal(SIGSEGV, handler);
     if (!Py_IsInitialized())
     {
         Py_Initialize();
@@ -27,7 +38,21 @@ void python_init()
     }
 }
 
-/*  Python Threading - eventually we'll want to refactor this code into the main
+/* Raises a Python exception if the string is not a supported prng */
+void CheckPRNG(std::string prng)
+{
+    PRNGFactory factory;
+    std::vector<std::string> names = factory.getNames();
+    if (std::find(names.begin(), names.end(), prng) == names.end())
+    {
+        /* Raise Python Exception */
+        PyErr_SetString(PyExc_ValueError, "Unsupported PRNG");
+        throw error_already_set();
+    }
+}
+
+/*
+ *  Python Threading - eventually we'll want to refactor this code into the main
  *  untwister.h but for now we just want it working.
  *
  */
@@ -64,6 +89,8 @@ void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *
 list FindSeed(const std::string& rng, list inputs, unsigned int threads, float minimumConfidence,
     uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth)
 {
+    CheckPRNG(rng);
+
     /* Convert Python list object to observedOutputs's std::vector<uint32_t> */
     for (unsigned int index = 0; index < len(inputs); ++index) {
         unsigned int data = boost::python::extract<unsigned int>(inputs[index]);
@@ -90,35 +117,49 @@ list FindSeed(const std::string& rng, list inputs, unsigned int threads, float m
     return results;
 }
 
-
-list crack_mt19932(list inputs, unsigned int threads, float minimumConfidence, uint32_t lowerBoundSeed,
-        uint32_t upperBoundSeed, uint32_t depth)
+list Sample(std::string prng, uint32_t seed, uint32_t depth)
 {
-    return FindSeed("mt19932", inputs, threads, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth);
+    CheckPRNG(prng);
+
+    std::vector<uint32_t> results = GenerateSample(seed, depth, prng);
+    /* Convert results to a Python object */
+    list sample;
+    for(unsigned int index = 0; index < results.size(); ++index)
+    {
+        sample.append(results.at(index));
+    }
+    return sample;
 }
 
-list crack_glibc(list inputs, unsigned int threads, float minimumConfidence, uint32_t lowerBoundSeed,
-        uint32_t upperBoundSeed, uint32_t depth)
+list Prngs()
 {
-    return FindSeed("glibc", inputs, threads, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth);
+    PRNGFactory factory;
+    std::vector<std::string> names = factory.getNames();
+    list prngs;
+    for (unsigned int index = 0; index < names.size(); ++index)
+    {
+        prngs.append(names.at(index));
+    }
+    return prngs;
 }
 
 /* Python interface */
 BOOST_PYTHON_MODULE(untwister) {
 
     def(
-        "mt19932",
-        crack_mt19932,
-        (arg("inputs"), arg("threads") = 2, arg("minimumConfidence") = 100.0, arg("lowerBoundSeed") = 0, arg("upperBoundSeed") = UINT_MAX, arg("depth") = 1000),
+        "find_seed",
+        FindSeed,
+        (arg("prng"), arg("inputs"), arg("threads") = 2, arg("minimumConfidence") = 100.0, arg("lowerBoundSeed") = 0, arg("upperBoundSeed") = UINT_MAX, arg("depth") = 1000),
         "\nThis is the cracking module for a generic mersenne twister 19932"
     );
 
     def(
-        "glibc",
-        crack_glibc,
-        (arg("inputs"), arg("threads") = 2, arg("minimumConfidence") = 100.0, arg("lowerBoundSeed") = 0, arg("upperBoundSeed") = UINT_MAX, arg("depth") = 1000),
-        "\nThis is the cracking module for a the generic glibc rand()"
+        "generate_sample",
+        Sample,
+        (arg("prng"), arg("seed"), arg("depth") = 1000),
+        "\n Generate a sample using a given PRNG"
     );
 
-    def("untwister", python_init);
+    def("prngs", Prngs, "\n List supported PRNGs algorithms");
+    def("untwister", PythonInit);
 }

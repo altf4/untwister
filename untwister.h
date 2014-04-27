@@ -90,7 +90,7 @@ void BruteForce(const unsigned int id, bool& isCompleted, std::vector<std::vecto
     delete generator;
 }
 
-void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
+std::vector<uint32_t> GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
 {
     PRNGFactory factory;
     PRNG *generator = factory.getInstance(rng);
@@ -105,12 +105,14 @@ void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
         generator->random();
     }
 
+    std::vector<uint32_t> results;
     for (unsigned int index = 0; index < 10; ++index)
     {
-        std::cout << generator->random() << std::endl;
+        results.push_back(generator->random());
     }
     delete generator;
     delete distance_gen;
+    return results;
 }
 
 /* Divide X number of seeds among Y number of threads */

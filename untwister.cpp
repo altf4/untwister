@@ -232,7 +232,9 @@ int main(int argc, char *argv[])
 
     if (seed != 0)
     {
-        GenerateSample(seed, depth, rng);
+        std::vector<uint32_t> results = GenerateSample(seed, depth, rng);
+        for (unsigned int index = 0; index < results.size(); ++index)
+            std::cout << results.at(index) << std::endl;
         return EXIT_SUCCESS;
     }
 
