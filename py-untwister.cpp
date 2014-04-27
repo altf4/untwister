@@ -30,9 +30,10 @@ void python_init()
 void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *answers, double minimumConfidence,
         uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth, std::string rng)
 {
+    /* Suspend Python's thread, so we can use native C++ threads */
     PyThreadState* pyThreadState = PyEval_SaveThread();
-    bool isCompleted = false;  // Flag to tell threads to stop working
 
+    bool isCompleted = false;
     std::vector<std::thread> pool(threads);
     std::vector<uint32_t> *status = new std::vector<uint32_t>(threads);
     std::vector<uint32_t> labor = DivisionOfLabor(upperBoundSeed - lowerBoundSeed, threads);
@@ -50,7 +51,7 @@ void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *
         pool[id].join();
     }
 
-    /* Clean up */
+    /* Clean up and restore Python thread state */
     PyEval_RestoreThread(pyThreadState);
     pyThreadState = NULL;
     delete status;
@@ -69,7 +70,7 @@ list FindSeed(const std::string& rng, list inputs, unsigned int threads, double 
     std::vector<std::vector<Seed>* > *answers = new std::vector<std::vector<Seed>* >(threads);
     SpawnThreads(threads, answers, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng);
 
-    /* Covert to python list object */
+    /* Covert answers to python list of tuples */
     list results;
     for (unsigned int id = 0; id < answers->size(); ++id)
     {
@@ -86,7 +87,7 @@ list FindSeed(const std::string& rng, list inputs, unsigned int threads, double 
 }
 
 
-list mt19932(list inputs, unsigned int threads, double minimumConfidence, uint32_t lowerBoundSeed,
+list crack_mt19932(list inputs, unsigned int threads, double minimumConfidence, uint32_t lowerBoundSeed,
         uint32_t upperBoundSeed, uint32_t depth)
 {
     return FindSeed("mt19932", inputs, threads, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth);
@@ -95,16 +96,10 @@ list mt19932(list inputs, unsigned int threads, double minimumConfidence, uint32
 /* Python interface */
 BOOST_PYTHON_MODULE(Untwister) {
 
-    def("mt19932",
-        mt19932(
-            arg("inputs"),
-            arg("threads") = std::thread::hardware_concurrency(),
-            arg("minimumConfidence") = 100.0,
-            arg("lowerBoundSeed") = 0,
-            arg("upperBoundSeed") = UINT_MAX,
-            arg("depth") = 1000,
-        ),
-        /* Docstring */
+    def(
+        "mt19932",
+        crack_mt19932,
+        (arg("inputs"), arg("threads") = 2, arg("minimumConfidence") = 100.0, arg("lowerBoundSeed") = 0, arg("upperBoundSeed") = UINT_MAX, arg("depth") = 1000),
         "Generic mersenne twister 19932"
     );
 

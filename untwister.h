@@ -18,7 +18,6 @@
 #ifndef UNTWISTER_H_
 #define UNTWISTER_H_
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <stdint.h>
@@ -28,7 +27,6 @@
 #include <vector>
 #include <thread>
 
-#include "ConsoleColors.h"
 #include "PRNGFactory.h"
 #include "prngs/PRNG.h"
 
@@ -83,7 +81,7 @@ void BruteForce(const unsigned int id, bool& isCompleted, std::vector<std::vecto
         double confidence = ((double) matchesFound / (double) observedOutputs.size()) * 100.0;
         if (minimumConfidence <= confidence)
         {
-            Seed seed = {seedIndex, confidence};
+            Seed seed = Seed(seedIndex, confidence);
             answers->at(id)->push_back(seed);
         }
         if (matchesFound == observedOutputs.size())

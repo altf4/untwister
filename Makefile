@@ -23,10 +23,13 @@ python:
 	g++ $(CPPFLAGS) -MF"prngs/Ruby.d" -MT"prngs/Ruby.d" -o "prngs/Ruby.o" "./prngs/Ruby.cpp"
 	g++ $(CPPFLAGS) -MF"PRNGFactory.d" -MT"PRNGFactory.d" -o "PRNGFactory.o" "./PRNGFactory.cpp"
 
-	g++ -I$(PYTHON) -I$(BOOST_INC) -c -fPIC py-untwister.cpp
-	g++ -shared -Wl,--export-dynamic untwister.o -L$(BOOST_LIB) -lboost_python -L/usr/lib/python2.7/config -lpython2.7 -o untwister.so
+	g++ -I$(PYTHON) -I$(BOOST_INC) -c -fPIC py-untwister.cpp -o py-untwister.o
+	g++ -shared -Wl,--export-dynamic py-untwister.o -L$(BOOST_LIB) -lboost_python -lpython2.7 -L/usr/lib/python2.7/config -o untwister.so
 
 clean:
 	rm -f ./prngs/*.o
 	rm -f ./prngs/*.d
-	rm -f untwister untwister.o untwister.d PRNGFactory.o PRNGFactory.d
+
+	rm -f *.o
+	rm -f *.d
+	rm -f untwister untwister.so
