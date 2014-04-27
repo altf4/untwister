@@ -8,6 +8,7 @@
 
 #include <python2.7/Python.h>
 #include <boost/python.hpp>
+#include <thread>
 
 #include "untwister.h"
 
@@ -26,7 +27,10 @@ void python_init()
     }
 }
 
-/* Python Threading */
+/*  Python Threading - eventually we'll want to refactor this code into the main
+ *  untwister.h but for now we just want it working.
+ *
+ */
 void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *answers, double minimumConfidence,
         uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth, std::string rng)
 {
@@ -57,7 +61,7 @@ void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *
     delete status;
 }
 
-list FindSeed(const std::string& rng, list inputs, unsigned int threads, double minimumConfidence,
+list FindSeed(const std::string& rng, list inputs, unsigned int threads, float minimumConfidence,
     uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth)
 {
     /* Convert Python list object to observedOutputs's std::vector<uint32_t> */
@@ -68,7 +72,7 @@ list FindSeed(const std::string& rng, list inputs, unsigned int threads, double 
 
     /* Each thread needs their own set of answers to avoid locking */
     std::vector<std::vector<Seed>* > *answers = new std::vector<std::vector<Seed>* >(threads);
-    SpawnThreads(threads, answers, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng);
+    SpawnThreads(threads, answers, (double) minimumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng);
 
     /* Covert answers to python list of tuples */
     list results;
@@ -87,21 +91,34 @@ list FindSeed(const std::string& rng, list inputs, unsigned int threads, double 
 }
 
 
-list crack_mt19932(list inputs, unsigned int threads, double minimumConfidence, uint32_t lowerBoundSeed,
+list crack_mt19932(list inputs, unsigned int threads, float minimumConfidence, uint32_t lowerBoundSeed,
         uint32_t upperBoundSeed, uint32_t depth)
 {
     return FindSeed("mt19932", inputs, threads, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth);
 }
 
+list crack_glibc(list inputs, unsigned int threads, float minimumConfidence, uint32_t lowerBoundSeed,
+        uint32_t upperBoundSeed, uint32_t depth)
+{
+    return FindSeed("glibc", inputs, threads, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth);
+}
+
 /* Python interface */
-BOOST_PYTHON_MODULE(Untwister) {
+BOOST_PYTHON_MODULE(untwister) {
 
     def(
         "mt19932",
         crack_mt19932,
         (arg("inputs"), arg("threads") = 2, arg("minimumConfidence") = 100.0, arg("lowerBoundSeed") = 0, arg("upperBoundSeed") = UINT_MAX, arg("depth") = 1000),
-        "Generic mersenne twister 19932"
+        "\nThis is the cracking module for a generic mersenne twister 19932"
     );
 
-    def("Untwister", python_init);
+    def(
+        "glibc",
+        crack_glibc,
+        (arg("inputs"), arg("threads") = 2, arg("minimumConfidence") = 100.0, arg("lowerBoundSeed") = 0, arg("upperBoundSeed") = UINT_MAX, arg("depth") = 1000),
+        "\nThis is the cracking module for a the generic glibc rand()"
+    );
+
+    def("untwister", python_init);
 }
