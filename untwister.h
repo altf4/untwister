@@ -115,27 +115,6 @@ void GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
     delete distance_gen;
 }
 
-void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t totalWork, std::vector<uint32_t> *status)
-{
-    double percent = 0;
-    steady_clock::time_point start = steady_clock::now();
-    while (!isCompleted)
-    {
-        unsigned int sum = 0;
-        for (unsigned int index = 0; index < status->size(); ++index)
-        {
-            sum += status->at(index);
-        }
-        percent = ((double) sum / (double) totalWork) * 100.0;
-        isCompleted = (100.0 <= percent);
-        std::cout << CLEAR << DEBUG << "Progress: " << percent << '%';
-        std::cout << " (" << (int) duration_cast<seconds>(steady_clock::now() - start).count() << " seconds)";
-        std::cout.flush();
-        std::this_thread::sleep_for(milliseconds(150));
-    }
-    std::cout << CLEAR;
-}
-
 /* Divide X number of seeds among Y number of threads */
 std::vector<uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWorkers)
 {
@@ -155,31 +134,6 @@ std::vector<uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWork
         }
     }
     return labor;
-}
-
-void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *answers, double minimumConfidence,
-        uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth, std::string rng)
-{
-    bool isCompleted = false;  // Flag to tell threads to stop working
-    std::cout << INFO << "Spawning " << threads << " worker thread(s) ..." << std::endl;
-
-    std::vector<std::thread> pool(threads);
-    std::vector<uint32_t> *status = new std::vector<uint32_t>(threads);
-    std::vector<uint32_t> labor = DivisionOfLabor(upperBoundSeed - lowerBoundSeed, threads);
-    uint32_t startAt = lowerBoundSeed;
-    for (unsigned int id = 0; id < threads; ++id)
-    {
-        uint32_t endAt = startAt + labor.at(id);
-        pool[id] = std::thread(BruteForce, id, std::ref(isCompleted), answers, status, minimumConfidence, startAt, endAt, depth, rng);
-        startAt += labor.at(id);
-    }
-    StatusThread(pool, isCompleted, upperBoundSeed - lowerBoundSeed, status);
-    for (unsigned int id = 0; id < pool.size(); ++id)
-    {
-        pool[id].join();
-    }
-
-    delete status;
 }
 
 #endif /* UNTWISTER_H_ */
