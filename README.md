@@ -1,7 +1,7 @@
 Untwister
 =========
 
-Multi-threaded seed recovery tool for the PRNGs
+Multi-threaded seed recovery tool for common PRNGs
 
 Supported PRNGs
 =================
@@ -35,6 +35,7 @@ Untwister - Recover PRNG seeds from observed values.
     -g <seed>
         Generate a test set of random numbers from the given seed (at a random depth)
     -t <threads>
+
         Spawn this many threads (default is your number of CPUs)
 
 Examples:
@@ -46,4 +47,27 @@ Examples:
 
     Generating 90 random numbers from state file saved in state.txt
         ./untwister -d 90 -g -i state.txt
+```
+
+
+Python Bindings
+=================
+* Python 2.7
+* Requires Boost C++ Python library (use apt-get or brew)
+
+```
+make python
+```
+
+
+Example script:
+
+```
+#!/usr/bin/env python
+import untwister
+
+with open('test_ints.txt') as fp:
+    sample = [int(line) for line in fp.readlines()]
+    results = untwister.find_seed(untwister.MT19937, sample, threads=4)
+    print results  # We get back a list of tuples
 ```
