@@ -15,9 +15,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
+
 #include "GlibcRand.h"
 #include "../ConsoleColors.h"
-#include <algorithm>
+
 
 GlibcRand::GlibcRand()
 {
@@ -84,8 +86,8 @@ std::vector<uint32_t> GlibcRand::predictForward(uint32_t length)
     running_state.resize(GLIBC_RAND_STATE_SIZE + length);
 
     std::vector<uint32_t> ret;
-    
-    /* There is a more memory efficient way to do this. With a 
+
+    /* There is a more memory efficient way to do this. With a
         linked list for the state. But meh.  */
     for(uint32_t i = 32; i < length + 32; i++)
     {
@@ -105,8 +107,8 @@ std::vector<uint32_t> GlibcRand::predictBackward(uint32_t length)
     running_state.resize(GLIBC_RAND_STATE_SIZE + length);
 
     std::vector<uint32_t> ret;
-    
-    /* There is a more memory efficient way to do this. With a 
+
+    /* There is a more memory efficient way to do this. With a
         linked list for the state. But meh.  */
     for(uint32_t i = GLIBC_RAND_STATE_SIZE; i < length + GLIBC_RAND_STATE_SIZE; i++)
     {
@@ -120,7 +122,7 @@ std::vector<uint32_t> GlibcRand::predictBackward(uint32_t length)
     return ret;
 }
 
-/* We just have to make some guesses about the LSBs and then test those 
+/* We just have to make some guesses about the LSBs and then test those
     guesses one by one */
 void GlibcRand::tune_repeatedIncrements()
 {
@@ -140,13 +142,13 @@ void GlibcRand::tune_repeatedIncrements()
             uint64_t sum = 0;
             for(uint32_t j = 0; j < guesses.size(); j++)
             {
-                sum += std::min(guesses[j] - m_evidence[GLIBC_RAND_STATE_SIZE + j], 
+                sum += std::min(guesses[j] - m_evidence[GLIBC_RAND_STATE_SIZE + j],
                     m_evidence[GLIBC_RAND_STATE_SIZE + j] - guesses[j]);
             }
 
             //Increment the state val
             m_state[i] += 1;
-            
+
             /* Get the success rate of the new state */
             guesses = this->predictForward(m_evidence.size() - GLIBC_RAND_STATE_SIZE);
 
@@ -159,7 +161,7 @@ void GlibcRand::tune_repeatedIncrements()
                     sum_new = -1;
                     break;
                 }
-                sum_new += std::min(guesses[j] - m_evidence[GLIBC_RAND_STATE_SIZE + j], 
+                sum_new += std::min(guesses[j] - m_evidence[GLIBC_RAND_STATE_SIZE + j],
                     m_evidence[GLIBC_RAND_STATE_SIZE + j] - guesses[j]);
             }
 
@@ -243,7 +245,7 @@ void GlibcRand::setLSBor(uint32_t index1, uint32_t index2)
     if(!m_LSBMap[index2].m_isKnown)
     {
         m_LSBMap[index2].m_orWith.push_back(index1);
-    }    
+    }
 }
 
 bool GlibcRand::handleRemainder(uint32_t i, std::vector<uint32_t> guesses)
@@ -256,7 +258,7 @@ bool GlibcRand::handleRemainder(uint32_t i, std::vector<uint32_t> guesses)
     uint32_t diff = observed - guess;
 
     uint32_t diff_first, diff_second;
-    /* Get Diff for first predecessor */   
+    /* Get Diff for first predecessor */
     if((i+1) >= GLIBC_RAND_STATE_SIZE)
     {
         diff_first = m_evidence[i+1] - guesses[i-31];
@@ -288,7 +290,7 @@ bool GlibcRand::handleRemainder(uint32_t i, std::vector<uint32_t> guesses)
         if((i+1) >= GLIBC_RAND_STATE_SIZE)
         {
             //TODO maybe do the recursion at the end?
-            handleRemainder(i-31, guesses);  
+            handleRemainder(i-31, guesses);
         }
 
         /* Second Value. IE: O_31*/
@@ -324,7 +326,7 @@ void GlibcRand::tune_chainChecking()
         {
             uint32_t diff = m_evidence[GLIBC_RAND_STATE_SIZE + i] - guesses[i];
             uint32_t diff_next = m_evidence[GLIBC_RAND_STATE_SIZE + i + 3] - guesses[i+3];
-            
+
             if(diff_next - diff == 1)
             {
                 keepGoing |= setLSB(i+4, 1);
@@ -350,7 +352,7 @@ bool GlibcRand::isInitState(std::deque<uint32_t> *tmp_state)
 
 bool GlibcRand::reverseToSeed(uint32_t *outSeed, uint32_t depth)
 {
-    /* Keep state in a deque for this, as we're going to need to go backwards a lot 
+    /* Keep state in a deque for this, as we're going to need to go backwards a lot
         This is for efficiency only. As we might have to go very deeply backwards,
         this part has to be fast */
     std::deque<uint32_t> tmp_state;
@@ -376,7 +378,7 @@ bool GlibcRand::reverseToSeed(uint32_t *outSeed, uint32_t depth)
     return false;
 }
 
-/* In glibc-rand, the rand() function chops off the LSB of the computed value. 
+/* In glibc-rand, the rand() function chops off the LSB of the computed value.
     This makes reversing it annoying, but not impossible. */
 void GlibcRand::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t> evidenceBackward)
 {
