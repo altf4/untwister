@@ -16,7 +16,8 @@
 *.exe
 *.out
 *.app
-
+*.py
+*.pyc
 # Deleted files
 *~
 

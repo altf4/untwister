@@ -22,7 +22,7 @@ void handler(int sig) {
     void *trace[TRACE_SIZE];
     size_t size;
     size = backtrace(trace, TRACE_SIZE);
-    fprintf(stderr, "Error: signal %d:\n", sig);
+    fprintf(stderr, "Error: signal %d\n", sig);
     backtrace_symbols_fd(trace, size, 2);
     exit(1);
 }
@@ -146,6 +146,9 @@ list Prngs()
 /* Python interface */
 BOOST_PYTHON_MODULE(untwister) {
 
+    def("untwister", PythonInit);
+    def("prngs", Prngs, "\n List supported PRNGs algorithms");
+
     def(
         "find_seed",
         FindSeed,
@@ -160,6 +163,8 @@ BOOST_PYTHON_MODULE(untwister) {
         "\n Generate a sample using a given PRNG"
     );
 
-    def("prngs", Prngs, "\n List supported PRNGs algorithms");
-    def("untwister", PythonInit);
+    scope current;
+    current.attr("MT19937") = "mt19937";
+    current.attr("GLIBC") = "glibc-rand";
+    current.attr("RUBY") = "ruby-rand";
 }
