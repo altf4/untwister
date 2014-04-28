@@ -51,11 +51,7 @@ void CheckPRNG(std::string prng)
     }
 }
 
-/*
- *  Python Threading - eventually we'll want to refactor this code into the main
- *  untwister.h but for now we just want it working.
- *
- */
+/* Python Threading */
 void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *answers, double minimumConfidence,
         uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth, std::string rng)
 {
@@ -147,7 +143,7 @@ list Prngs()
 BOOST_PYTHON_MODULE(untwister) {
 
     def("untwister", PythonInit);
-    def("prngs", Prngs, "\n List supported PRNGs algorithms");
+    def("prngs", Prngs, "\n List of supported PRNGs");
 
     def(
         "find_seed",
@@ -164,6 +160,7 @@ BOOST_PYTHON_MODULE(untwister) {
     );
 
     scope current;
+    current.attr("__doc__") = "Multi-threaded seed recovery tool for common PRNGs";
     current.attr("MT19937") = "mt19937";
     current.attr("GLIBC") = "glibc-rand";
     current.attr("RUBY") = "ruby-rand";

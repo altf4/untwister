@@ -47,7 +47,7 @@ void Usage(PRNGFactory factory, unsigned int threads)
     std::cout << "\t-g <seed>\n\t\tGenerate a test set of random numbers from the given seed (at a random depth)" << std::endl;
     std::cout << "\t-c <confidence>\n\t\tSet the minimum confidence percentage to report" << std::endl;
     std::cout << "\t-t <threads>\n\t\tSpawn this many threads (default is " << threads << ")" << std::endl;
-    std::cout << "" << std::endl;
+    std::cout << std::endl;
 }
 
 void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t totalWork, std::vector<uint32_t> *status)
