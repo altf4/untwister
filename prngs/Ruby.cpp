@@ -88,3 +88,49 @@ uint32_t Ruby::genrand_int32(struct MT *mt)
 
     return y;
 }
+
+uint32_t Ruby::getStateSize(void)
+{
+    return RUBY_STATE_SIZE;
+}
+
+void Ruby::setState(std::vector<uint32_t> inState)
+{
+    m_state = inState;
+    m_state.resize(RUBY_STATE_SIZE, 0);
+}
+
+std::vector<uint32_t> Ruby::getState(void)
+{
+    return m_state;
+}
+
+std::vector<uint32_t> Ruby::predictForward(uint32_t)
+{
+    std::vector<uint32_t> ret;
+    //TODO
+    return ret;
+}
+
+std::vector<uint32_t> Ruby::predictBackward(uint32_t)
+{
+    std::vector<uint32_t> ret;
+    //TODO
+    return ret;
+}
+
+bool Ruby::reverseToSeed(uint32_t *outSeed, uint32_t depth)
+{
+    return false;
+}
+
+void Ruby::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t> evidenceBackward)
+{
+    //TODO
+}
+
+void Ruby::setEvidence(std::vector<uint32_t>)
+{
+
+}
+

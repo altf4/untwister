@@ -21,7 +21,9 @@ Untwister - Recover PRNG seeds from observed values.
         an example.
     -d <depth>
         The depth (default 1000) to inspect for each seed value when brute forcing.
-        Choosing a higher depth value will make brute forcing take longer (linearly), but is required for cases where the generator has been used many times already.
+        Choosing a higher depth value will make brute forcing take longer (linearly), 
+        but is required for cases where the generator has been used many times already.
+        Also controls how deep to generate random numbers given the -g option
     -r <rng_alg>
         The RNG algorithm to use. Supported RNG algorithms:
         glibc-rand (default)
@@ -33,5 +35,15 @@ Untwister - Recover PRNG seeds from observed values.
     -g <seed>
         Generate a test set of random numbers from the given seed (at a random depth)
     -t <threads>
-        Spawn this many threads (default is 4)
+        Spawn this many threads (default is your number of CPUs)
+
+Examples:
+    Cracking a list of random numbers in test_ints.txt
+        ./untwister -i test_ints.txt
+
+    Generating 70 random numbers from seed 1234, using glibc-rand
+        ./untwister -d 70 -g 1234 -r glibc-rand
+
+    Generating 90 random numbers from state file saved in state.txt
+        ./untwister -d 90 -g -i state.txt
 ```
