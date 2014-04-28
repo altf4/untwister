@@ -1,5 +1,5 @@
 # Standard flags
-CPPFLAGS = -std=gnu++11 -O3 -pthread -g3 -Wall -c -fmessage-length=0 -MMD
+CPPFLAGS = -std=gnu++11 -O3 -pthread -g3 -Wall -c -fmessage-length=0 -MMD -fPIC
 PYTHON = /usr/include/python2.7
 BOOST_INC = /usr/include
 
