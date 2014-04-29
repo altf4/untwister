@@ -17,12 +17,11 @@ using namespace boost::python;
 
 static const unsigned int TRACE_SIZE = 10;
 
-/* Segfault handler */
+/* Segfault handler - for debugging only */
 void handler(int sig) {
     void *trace[TRACE_SIZE];
-    size_t size;
-    size = backtrace(trace, TRACE_SIZE);
-    fprintf(stderr, "Error: signal %d\n", sig);
+    size_t size = backtrace(trace, TRACE_SIZE);
+    std::cerr << "[!] SIGSEGV: " << sig << std::endl;
     backtrace_symbols_fd(trace, size, 2);
     exit(1);
 }
@@ -31,7 +30,7 @@ void handler(int sig) {
 void PythonInit()
 {
     signal(SIGSEGV, handler);
-    if (!Py_IsInitialized())
+    if(!Py_IsInitialized())
     {
         Py_Initialize();
         PyEval_InitThreads();
@@ -43,7 +42,7 @@ void CheckPRNG(std::string prng)
 {
     PRNGFactory factory;
     std::vector<std::string> names = factory.getNames();
-    if (std::find(names.begin(), names.end(), prng) == names.end())
+    if(std::find(names.begin(), names.end(), prng) == names.end())
     {
         /* Raise Python Exception */
         PyErr_SetString(PyExc_ValueError, "Unsupported PRNG");
@@ -51,58 +50,33 @@ void CheckPRNG(std::string prng)
     }
 }
 
-/* Python Threading */
-void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *answers, double minimumConfidence,
-        uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth, std::string rng)
-{
-    /* Suspend Python's thread, so we can use native C++ threads */
-    PyThreadState* pyThreadState = PyEval_SaveThread();
-
-    bool isCompleted = false;
-    std::vector<std::thread> pool(threads);
-    std::vector<uint32_t> *status = new std::vector<uint32_t>(threads);
-    std::vector<uint32_t> labor = DivisionOfLabor(upperBoundSeed - lowerBoundSeed, threads);
-    uint32_t startAt = lowerBoundSeed;
-
-    for (unsigned int id = 0; id < threads; ++id)
-    {
-        uint32_t endAt = startAt + labor.at(id);
-        pool[id] = std::thread(BruteForce, id, std::ref(isCompleted), answers, status, minimumConfidence, startAt, endAt, depth, rng);
-        startAt += labor.at(id);
-    }
-
-    for (unsigned int id = 0; id < pool.size(); ++id)
-    {
-        pool[id].join();
-    }
-
-    /* Clean up and restore Python thread state */
-    PyEval_RestoreThread(pyThreadState);
-    pyThreadState = NULL;
-    delete status;
-}
-
+/* Find a seed */
 list FindSeed(const std::string& rng, list inputs, unsigned int threads, float minimumConfidence,
     uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth)
 {
     CheckPRNG(rng);
 
     /* Convert Python list object to observedOutputs's std::vector<uint32_t> */
-    for (unsigned int index = 0; index < len(inputs); ++index) {
+    for(unsigned int index = 0; index < len(inputs); ++index) {
         unsigned int data = boost::python::extract<unsigned int>(inputs[index]);
         observedOutputs.push_back(data);
     }
 
-    /* Each thread needs their own set of answers to avoid locking */
     std::vector<std::vector<Seed>* > *answers = new std::vector<std::vector<Seed>* >(threads);
-    SpawnThreads(threads, answers, (double) minimumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng);
+
+    /* Suspend Python's thread, so we can use native C++ threads */
+    PyThreadState* pyThreadState = PyEval_SaveThread();
+    StartBruteForce(threads, answers, (double) minimumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng);
+
+    /* Clean up and restore Python thread state */
+    PyEval_RestoreThread(pyThreadState);
+    pyThreadState = NULL;
 
     /* Covert answers to python list of tuples */
     list results;
-    for (unsigned int id = 0; id < answers->size(); ++id)
+    for(unsigned int id = 0; id < answers->size(); ++id)
     {
-        /* Look for answers from each thread */
-        for (unsigned int index = 0; index < answers->at(id)->size(); ++index)
+        for(unsigned int index = 0; index < answers->at(id)->size(); ++index)
         {
             tuple result = make_tuple(answers->at(id)->at(index).first, answers->at(id)->at(index).second);
             results.append(result);
@@ -113,6 +87,7 @@ list FindSeed(const std::string& rng, list inputs, unsigned int threads, float m
     return results;
 }
 
+/* Generate a sample sequence */
 list Sample(std::string prng, uint32_t seed, uint32_t depth)
 {
     CheckPRNG(prng);
@@ -127,12 +102,13 @@ list Sample(std::string prng, uint32_t seed, uint32_t depth)
     return sample;
 }
 
+/* List all supported PRNGs */
 list Prngs()
 {
     PRNGFactory factory;
     std::vector<std::string> names = factory.getNames();
     list prngs;
-    for (unsigned int index = 0; index < names.size(); ++index)
+    for(unsigned int index = 0; index < names.size(); ++index)
     {
         prngs.append(names.at(index));
     }
@@ -143,12 +119,22 @@ list Prngs()
 BOOST_PYTHON_MODULE(untwister) {
 
     def("untwister", PythonInit);
+
+    scope current;
+    current.attr("__doc__") = "Multi-threaded seed recovery tool for common PRNGs";
+    current.attr("MT19937") = "mt19937";
+    current.attr("GLIBC") = "glibc-rand";
+    current.attr("RUBY") = "ruby-rand";
+    unsigned int threads = std::thread::hardware_concurrency();
+    current.attr("THREADS") = threads;
+
     def("prngs", Prngs, "\n List of supported PRNGs");
 
     def(
         "find_seed",
         FindSeed,
-        (arg("prng"), arg("inputs"), arg("threads") = 2, arg("minimumConfidence") = 100.0, arg("lowerBoundSeed") = 0, arg("upperBoundSeed") = UINT_MAX, arg("depth") = 1000),
+        (arg("prng"), arg("inputs"), arg("threads") = threads, arg("confidence") = 100.0, \
+            arg("lower") = 0, arg("upper") = UINT_MAX, arg("depth") = 1000),
         "\nThis is the cracking module for a generic mersenne twister 19932"
     );
 
@@ -159,9 +145,4 @@ BOOST_PYTHON_MODULE(untwister) {
         "\n Generate a sample using a given PRNG"
     );
 
-    scope current;
-    current.attr("__doc__") = "Multi-threaded seed recovery tool for common PRNGs";
-    current.attr("MT19937") = "mt19937";
-    current.attr("GLIBC") = "glibc-rand";
-    current.attr("RUBY") = "ruby-rand";
 }

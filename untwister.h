@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include <atomic>
 
 #include "ConsoleColors.h" // TODO: Sepearte logic from stdout calls
 #include "PRNGFactory.h"
@@ -44,8 +45,8 @@ static const unsigned int ONE_YEAR = 31536000;
 
 
 /* Yeah lots of parameters, but such is the life of a thread */
-void BruteForce(const unsigned int id, bool& isCompleted, std::vector<std::vector<Seed>* > *answers,
-        std::vector<uint32_t>* status, double minimumConfidence, uint32_t startingSeed, uint32_t endingSeed,
+void BruteForce(unsigned int id, std::atomic<bool> *isCompleted, std::vector<std::vector<Seed>* > *answers,
+        std::vector<uint32_t> *status, double minimumConfidence, uint32_t startingSeed, uint32_t endingSeed,
         uint32_t depth, std::string rng)
 {
     /* Each thread must have a local factory unless you like mutexes and/or segfaults */
@@ -53,23 +54,23 @@ void BruteForce(const unsigned int id, bool& isCompleted, std::vector<std::vecto
     PRNG *generator = factory.getInstance(rng);
     answers->at(id) = new std::vector<Seed>;
 
-    for (uint32_t seedIndex = startingSeed; seedIndex <= endingSeed; ++seedIndex)
+    for(uint32_t seedIndex = startingSeed; seedIndex <= endingSeed; ++seedIndex)
     {
 
-        if (isCompleted)
+        if(isCompleted->load(std::memory_order_relaxed))
             break;  // Some other thread found the seed
 
         generator->seed(seedIndex);
         uint32_t matchesFound = 0;
-        for (uint32_t index = 0; index < depth; index++)
+        for(uint32_t index = 0; index < depth; index++)
         {
             uint32_t nextRand = generator->random();
             uint32_t observed = observedOutputs[matchesFound];
 
-            if (observed == nextRand)
+            if(observed == nextRand)
             {
                 matchesFound++;
-                if (matchesFound == observedOutputs.size())
+                if(matchesFound == observedOutputs.size())
                 {
                     break;  // This seed is a winner if we get to the end
                 }
@@ -78,15 +79,62 @@ void BruteForce(const unsigned int id, bool& isCompleted, std::vector<std::vecto
 
         status->at(id) = seedIndex - startingSeed;
         double confidence = ((double) matchesFound / (double) observedOutputs.size()) * 100.0;
-        if (minimumConfidence <= confidence)
+        if(minimumConfidence <= confidence)
         {
             Seed seed = Seed(seedIndex, confidence);
             answers->at(id)->push_back(seed);
         }
-        if (matchesFound == observedOutputs.size())
-            isCompleted = true;  // We found the correct seed
+        if(matchesFound == observedOutputs.size())
+        {
+            isCompleted->store(true, std::memory_order_relaxed);
+        }
     }
     delete generator;
+}
+
+/* Divide X number of seeds among Y number of threads */
+std::vector<uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWorkers)
+{
+    uint32_t work = sizeOfWork / numberOfWorkers;
+    uint32_t leftover = sizeOfWork % numberOfWorkers;
+    std::vector<uint32_t> labor(numberOfWorkers);
+    for(uint32_t index = 0; index < numberOfWorkers; ++index)
+    {
+        if(0 < leftover)
+        {
+            labor[index] = work + 1;
+            --leftover;
+        }
+        else
+        {
+            labor[index] = work;
+        }
+    }
+    return labor;
+}
+
+/* Generic Threading */
+void StartBruteForce(unsigned int threads, std::vector<std::vector<Seed>* > *answers, double minimumConfidence,
+        uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth, std::string rng)
+{
+    std::atomic<bool> *isCompleted = new std::atomic<bool>(false);
+    std::vector<std::thread> pool(threads);
+    std::vector<uint32_t> *status = new std::vector<uint32_t>(threads);
+    std::vector<uint32_t> labor = DivisionOfLabor(upperBoundSeed - lowerBoundSeed, threads);
+    uint32_t startAt = lowerBoundSeed;
+
+    for(unsigned int id = 0; id < threads; ++id)
+    {
+        uint32_t endAt = startAt + labor.at(id);
+        pool[id] = std::thread(BruteForce, id, isCompleted, answers, status, minimumConfidence, startAt, endAt, depth, rng);
+        startAt += labor.at(id);
+    }
+
+    for(unsigned int id = 0; id < pool.size(); ++id)
+    {
+        pool[id].join();
+    }
+    delete status;
 }
 
 
@@ -253,27 +301,6 @@ std::vector<uint32_t> GenerateSample(std::vector<uint32_t> state, uint32_t depth
     }
     delete generator;
     return results;
-}
-
-/* Divide X number of seeds among Y number of threads */
-std::vector<uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWorkers)
-{
-    uint32_t work = sizeOfWork / numberOfWorkers;
-    uint32_t leftover = sizeOfWork % numberOfWorkers;
-    std::vector<uint32_t> labor(numberOfWorkers);
-    for (uint32_t index = 0; index < numberOfWorkers; ++index)
-    {
-        if (0 < leftover)
-        {
-            labor[index] = work + 1;
-            --leftover;
-        }
-        else
-        {
-            labor[index] = work;
-        }
-    }
-    return labor;
 }
 
 #endif /* UNTWISTER_H_ */

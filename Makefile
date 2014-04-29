@@ -27,8 +27,9 @@ PRNGFactory:
 	g++ -std=gnu++11 -O3 -pthread -o "untwister" ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o ./untwister.o
 
 python: GlibcRand Mt19937 RubyRand LSBState PRNGFactory
-	g++ -std=c++11 -I$(PYTHON) -I$(BOOST_INC) -c -fPIC py-untwister.cpp -o py-untwister.o
-	g++ -std=c++11 -shared -fPIC ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o py-untwister.o \
+	# Make the shared object
+	g++ $(CPPFLAGS) -I$(PYTHON) -I$(BOOST_INC) py-untwister.cpp -o py-untwister.o
+	g++ -std=c++11 -shared -fPIC -O3 ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o py-untwister.o \
 		-lboost_python -lpython2.7 -o untwister.so
 
 

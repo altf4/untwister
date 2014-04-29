@@ -71,30 +71,6 @@ void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t to
     std::cout << CLEAR;
 }
 
-void SpawnThreads(const unsigned int threads, std::vector<std::vector<Seed>* > *answers, double minimumConfidence,
-        uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth, std::string rng)
-{
-    bool isCompleted = false;  // Flag to tell threads to stop working
-
-    std::vector<std::thread> pool(threads);
-    std::vector<uint32_t> *status = new std::vector<uint32_t>(threads);
-    std::vector<uint32_t> labor = DivisionOfLabor(upperBoundSeed - lowerBoundSeed, threads);
-    uint32_t startAt = lowerBoundSeed;
-    for (unsigned int id = 0; id < threads; ++id)
-    {
-        uint32_t endAt = startAt + labor.at(id);
-        pool[id] = std::thread(BruteForce, id, std::ref(isCompleted), answers, status, minimumConfidence, startAt, endAt, depth, rng);
-        startAt += labor.at(id);
-    }
-    StatusThread(pool, isCompleted, upperBoundSeed - lowerBoundSeed, status);
-    for (unsigned int id = 0; id < pool.size(); ++id)
-    {
-        pool[id].join();
-    }
-
-    delete status;
-}
-
 void FindSeed(const std::string& rng, unsigned int threads, double minimumConfidence, uint32_t lowerBoundSeed,
         uint32_t upperBoundSeed, uint32_t depth)
 {
@@ -105,7 +81,7 @@ void FindSeed(const std::string& rng, unsigned int threads, double minimumConfid
     /* Each thread needs their own set of answers to avoid locking */
     std::vector<std::vector<Seed>* > *answers = new std::vector<std::vector<Seed>* >(threads);
     steady_clock::time_point elapsed = steady_clock::now();
-    SpawnThreads(threads, answers, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng);
+    StartBruteForce(threads, answers, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng);
 
     std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - elapsed).count()
               << " second(s)" << std::endl;
