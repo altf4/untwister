@@ -262,32 +262,23 @@ bool InferState(const std::string& rng)
     return false;
 }
 
+/* For easier testing, will generate a series of random numbers at a given seed and depth*/
 std::vector<uint32_t> GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
 {
     PRNGFactory factory;
     PRNG *generator = factory.getInstance(rng);
     generator->seed(seed);
-    PRNG *distance_gen= factory.getInstance(rng);
-    distance_gen->seed(time(NULL));
-    uint32_t distance = distance_gen->random() % (depth - 10);
-
-    // Burn a bunch of random numbers
-    for (uint32_t index = 0; index < distance; ++index)
-    {
-        generator->random();
-    }
 
     std::vector<uint32_t> results;
-    for (unsigned int index = 0; index < 10; ++index)
+    for (unsigned int index = 0; index < depth; ++index)
     {
         results.push_back(generator->random());
     }
     delete generator;
-    delete distance_gen;
     return results;
 }
 
-/* For easier testing, will generate a series of random numbers at a given seed */
+/* For easier testing, will generate a series of random numbers at a given state and depth */
 std::vector<uint32_t> GenerateSample(std::vector<uint32_t> state, uint32_t depth, std::string rng)
 {
     PRNGFactory factory;
