@@ -26,6 +26,7 @@ PRNGFactory:
 	g++ $(CPPFLAGS) -MF"untwister.d" -MT"untwister.d" -o "untwister.o" "./untwister.cpp"
 	g++ -std=gnu++11 -O3 -pthread -o "untwister" ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o ./untwister.o
 
+
 python: GlibcRand Mt19937 RubyRand LSBState PRNGFactory
 	# Make the shared object
 	g++ $(CPPFLAGS) -I$(PYTHON) -I$(BOOST_INC) py-untwister.cpp -o py-untwister.o

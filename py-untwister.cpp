@@ -62,7 +62,7 @@ list FindSeed(const std::string& rng, list inputs, unsigned int threads, float m
         observedOutputs.push_back(data);
     }
 
-    std::vector<std::vector<Seed>* > *answers = new std::vector<std::vector<Seed>* >(threads);
+    std::vector<std::vector<Seed>* >* answers = new std::vector<std::vector<Seed>* >(threads);
 
     /* Suspend Python's thread, so we can use native C++ threads */
     PyThreadState* pyThreadState = PyEval_SaveThread();

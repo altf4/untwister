@@ -114,7 +114,7 @@ std::vector<uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWork
 }
 
 /* Generic Threading */
-void StartBruteForce(unsigned int threads, std::vector<std::vector<Seed>* > *answers, double minimumConfidence,
+void StartBruteForce(unsigned int threads, std::vector<std::vector<Seed>* >* answers, double minimumConfidence,
         uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth, std::string rng)
 {
     std::atomic<bool> *isCompleted = new std::atomic<bool>(false);
