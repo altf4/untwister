@@ -50,27 +50,6 @@ void Usage(PRNGFactory factory, unsigned int threads)
     std::cout << std::endl;
 }
 
-void StatusThread(std::vector<std::thread>& pool, bool& isCompleted, uint32_t totalWork, std::vector<uint32_t> *status)
-{
-    double percent = 0;
-    steady_clock::time_point start = steady_clock::now();
-    while (!isCompleted)
-    {
-        unsigned int sum = 0;
-        for (unsigned int index = 0; index < status->size(); ++index)
-        {
-            sum += status->at(index);
-        }
-        percent = ((double) sum / (double) totalWork) * 100.0;
-        isCompleted = (100.0 <= percent);
-        std::cout << CLEAR << DEBUG << "Progress: " << percent << '%';
-        std::cout << " (" << (int) duration_cast<seconds>(steady_clock::now() - start).count() << " seconds)";
-        std::cout.flush();
-        std::this_thread::sleep_for(milliseconds(150));
-    }
-    std::cout << CLEAR;
-}
-
 void FindSeed(const std::string& rng, unsigned int threads, double minimumConfidence, uint32_t lowerBoundSeed,
         uint32_t upperBoundSeed, uint32_t depth)
 {
@@ -81,7 +60,7 @@ void FindSeed(const std::string& rng, unsigned int threads, double minimumConfid
     /* Each thread needs their own set of answers to avoid locking */
     std::vector<std::vector<Seed>* > *answers = new std::vector<std::vector<Seed>* >(threads);
     steady_clock::time_point elapsed = steady_clock::now();
-    StartBruteForce(threads, answers, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng);
+    StartBruteForce(threads, answers, minimumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng, true);
 
     std::cout << INFO << "Completed in " << duration_cast<seconds>(steady_clock::now() - elapsed).count()
               << " second(s)" << std::endl;

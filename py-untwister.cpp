@@ -66,7 +66,7 @@ list FindSeed(const std::string& rng, list inputs, unsigned int threads, float m
 
     /* Suspend Python's thread, so we can use native C++ threads */
     PyThreadState* pyThreadState = PyEval_SaveThread();
-    StartBruteForce(threads, answers, (double) minimumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng);
+    StartBruteForce(threads, answers, (double) minimumConfidence, lowerBoundSeed, upperBoundSeed, depth, rng, false);
 
     /* Clean up and restore Python thread state */
     PyEval_RestoreThread(pyThreadState);
