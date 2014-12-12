@@ -1,13 +1,18 @@
 # Standard flags
-CPPFLAGS = -std=gnu++11 -O3 -pthread -g3 -Wall -c -fmessage-length=0 -MMD -fPIC
+CPPFLAGS = -std=gnu++11 -O3 -g3 -Wall -c -fmessage-length=0 -MMD -fPIC
 PYTHON = /usr/include/python2.7
 BOOST_INC = /usr/include
+OBJS = ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o ./Untwister.o
 
+all: GlibcRand Mt19937 RubyRand LSBState PRNGFactory Untwister
+	# Make the cli binary
+	g++ $(CPPFLAGS) -MF"main.d" -MT"main.d" -o "main.o" "./main.cpp"
+	g++ -std=gnu++11 -O3 $(OBJS) main.o -o untwister
 
-all: GlibcRand Mt19937 RubyRand LSBState PRNGFactory
-	# Make the binary
-	g++ $(CPPFLAGS) -MF"untwister.d" -MT"untwister.d" -o "untwister.o" "./untwister.cpp"
-	g++ -std=gnu++11 -O3 -pthread -o "untwister" ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o ./untwister.o
+python: GlibcRand Mt19937 RubyRand LSBState PRNGFactory Untwister
+	# Make the shared object
+	g++ $(CPPFLAGS) -I$(PYTHON) -I$(BOOST_INC) py-untwister.cpp -o py-untwister.o
+	g++ -std=c++11 -shared -fPIC -O3 $(OBJS) py-untwister.o -lboost_python -lpython2.7 -o untwister.so
 
 GlibcRand:
 	g++ $(CPPFLAGS) -MF"prngs/GlibcRand.d" -MT"prngs/GlibcRand.d" -o "prngs/GlibcRand.o" "./prngs/GlibcRand.cpp"
@@ -23,15 +28,9 @@ LSBState:
 
 PRNGFactory:
 	g++ $(CPPFLAGS) -MF"PRNGFactory.d" -MT"PRNGFactory.d" -o "PRNGFactory.o" "./PRNGFactory.cpp"
-	g++ $(CPPFLAGS) -MF"untwister.d" -MT"untwister.d" -o "untwister.o" "./untwister.cpp"
-	g++ -std=gnu++11 -O3 -pthread -o "untwister" ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o ./untwister.o
 
-
-python: GlibcRand Mt19937 RubyRand LSBState PRNGFactory
-	# Make the shared object
-	g++ $(CPPFLAGS) -I$(PYTHON) -I$(BOOST_INC) py-untwister.cpp -o py-untwister.o
-	g++ -std=c++11 -shared -fPIC -O3 ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o py-untwister.o \
-		-lboost_python -lpython2.7 -o untwister.so
+Untwister:
+	g++ $(CPPFLAGS) -pthread -MF"Untwister.d" -MT"Untwister.d" -o "Untwister.o" "./Untwister.cpp"
 
 
 clean:

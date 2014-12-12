@@ -18,314 +18,72 @@
 #ifndef UNTWISTER_H_
 #define UNTWISTER_H_
 
-#include <stdlib.h>
-#include <limits.h>
-#include <stdint.h>
-#include <iostream>
-#include <fstream>
+#include <climits>
+#include <cstdlib>
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <thread>
 #include <atomic>
+#include <fstream>
+#include <iostream>
 
-#include "ConsoleColors.h" // TODO: Sepearte logic from stdout calls
+#include "ConsoleColors.h"
 #include "PRNGFactory.h"
 #include "prngs/PRNG.h"
-
-using std::chrono::seconds;
-using std::chrono::milliseconds;
-using std::chrono::duration_cast;
-using std::chrono::steady_clock;
 
 // Pair of <seed, quality of fit>
 typedef std::pair<uint32_t, double> Seed;
 
-static std::vector<uint32_t> observedOutputs;
-static const unsigned int ONE_YEAR = 31536000;
+static const uint32_t DEFAULT_DEPTH = 1000;
+static const double DEFAULT_MIN_CONFIDENCE = 100.0;
 
-
-/* Yeah lots of parameters, but such is the life of a thread */
-void BruteForce(unsigned int id, std::atomic<bool> *isCompleted, std::vector<std::vector<Seed>* > *answers,
-        std::vector<uint32_t> *status, double minimumConfidence, uint32_t startingSeed, uint32_t endingSeed,
-        uint32_t depth, std::string rng)
+class Untwister
 {
-    /* Each thread must have a local factory unless you like mutexes and/or segfaults */
-    PRNGFactory factory;
-    PRNG *generator = factory.getInstance(rng);
-    answers->at(id) = new std::vector<Seed>;
 
-    for(uint32_t seedIndex = startingSeed; seedIndex <= endingSeed; ++seedIndex)
-    {
+public:
+    Untwister();
+    Untwister(unsigned int threads);
+    Untwister(unsigned int threads, unsigned int observationSize);
+    virtual ~Untwister();
 
-        if(isCompleted->load(std::memory_order_relaxed))
-            break;  // Some other thread found the seed
+    std::vector<Seed> bruteforce(uint32_t lowerBoundSeed, uint32_t upperBoundSeed);
+    bool inferState();
 
-        generator->seed(seedIndex);
-        uint32_t matchesFound = 0;
-        for(uint32_t index = 0; index < depth; index++)
-        {
-            uint32_t nextRand = generator->random();
-            uint32_t observed = observedOutputs[matchesFound];
+    std::vector<std::string> getPRNGNames();
+    void setPRNGName(std::string prng);
+    void setPRNGName(char *prng);
+    std::string getPRNGName();
 
-            if(observed == nextRand)
-            {
-                matchesFound++;
-                if(matchesFound == observedOutputs.size())
-                {
-                    break;  // This seed is a winner if we get to the end
-                }
-            }
-        }
+    void setMinConfidence(double minConfidence);
+    double getMinConfidence();
+    void setDepth(uint32_t depth);
+    uint32_t getDepth();
+    void setThreads(unsigned int threads);
+    unsigned int getThreads();
+    void addObservedOutput(uint32_t observedOutput);
+    std::vector<uint32_t>* getObservedOutputs();
+    std::vector<uint32_t>* getStatus();
+    std::atomic<bool>* getIsCompleted();
+    std::atomic<bool>* getIsRunning();
 
-        status->at(id) = seedIndex - startingSeed;
-        double confidence = ((double) matchesFound / (double) observedOutputs.size()) * 100.0;
-        if(minimumConfidence <= confidence)
-        {
-            Seed seed = Seed(seedIndex, confidence);
-            answers->at(id)->push_back(seed);
-        }
-        if(matchesFound == observedOutputs.size())
-        {
-            isCompleted->store(true, std::memory_order_relaxed);
-        }
-    }
-    delete generator;
-}
+    std::vector<uint32_t> generateSampleFromSeed(uint32_t seed);
+    std::vector<uint32_t> generateSampleFromState();
 
-/* Divide X number of seeds among Y number of threads */
-std::vector<uint32_t> DivisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWorkers)
-{
-    uint32_t work = sizeOfWork / numberOfWorkers;
-    uint32_t leftover = sizeOfWork % numberOfWorkers;
-    std::vector<uint32_t> labor(numberOfWorkers);
-    for(uint32_t index = 0; index < numberOfWorkers; ++index)
-    {
-        if(0 < leftover)
-        {
-            labor[index] = work + 1;
-            --leftover;
-        }
-        else
-        {
-            labor[index] = work;
-        }
-    }
-    return labor;
-}
+private:
+    unsigned int threads;
+    double minConfidence;
+    uint32_t depth;
+    std::string prng;
+    std::atomic<bool> *isCompleted;
+    std::atomic<bool> *isRunning;
+    std::vector<uint32_t> *status;
+    std::vector<std::vector<Seed>* > *answers;
+    std::vector<uint32_t> *observedOutputs;
 
-void StatusThread(std::atomic<bool> *isCompleted, uint32_t totalWork, std::vector<uint32_t> *status)
-{
-    double percent = 0;
-    steady_clock::time_point start = steady_clock::now();
-    while (!isCompleted->load(std::memory_order_relaxed))
-    {
-        unsigned int sum = 0;
-        for (unsigned int index = 0; index < status->size(); ++index)
-        {
-            sum += status->at(index);
-        }
-        percent = ((double) sum / (double) totalWork) * 100.0;
-        std::cout << CLEAR << DEBUG << "Progress: " << percent << '%';
-        std::cout << " (" << (int) duration_cast<seconds>(steady_clock::now() - start).count() << " seconds)";
-        std::cout.flush();
-        std::this_thread::sleep_for(milliseconds(150));
-    }
-    std::cout << CLEAR;
-}
+    void worker(unsigned int id, uint32_t startingSeed, uint32_t endingSeed);
+    std::vector<uint32_t> divisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWorkers);
 
-/* Generic Threading */
-void StartBruteForce(unsigned int threads, std::vector<std::vector<Seed>* >* answers, double minimumConfidence,
-        uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth, std::string rng, bool statusThread)
-{
-    std::atomic<bool> *isCompleted = new std::atomic<bool>(false);
-    std::vector<std::thread> pool(threads);
-    std::vector<uint32_t> *status = new std::vector<uint32_t>(threads);
-    std::vector<uint32_t> labor = DivisionOfLabor(upperBoundSeed - lowerBoundSeed, threads);
-    uint32_t startAt = lowerBoundSeed;
-
-    for(unsigned int id = 0; id < threads; ++id)
-    {
-        uint32_t endAt = startAt + labor.at(id);
-        pool[id] = std::thread(BruteForce, id, isCompleted, answers, status, minimumConfidence, startAt, endAt, depth, rng);
-        startAt += labor.at(id);
-    }
-    if (statusThread)
-    {
-        std::thread(StatusThread, isCompleted, upperBoundSeed - lowerBoundSeed, status).join();
-    }
-
-    /* Join all the worker threads */
-    for(unsigned int id = 0; id < pool.size(); ++id)
-    {
-        pool[id].join();
-    }
-    delete status;
-}
-
-
-/*
-    This is the "smarter" method of breaking RNGs. We use consecutive integers
-    to infer information about the internal state of the RNG. Using this
-    method, however, we won't typically recover an actual seed value.
-    But the effect is the same.
-*/
-bool InferState(const std::string& rng)
-{
-    std::cout << INFO << "Trying state inference" << std::endl;
-
-    PRNGFactory factory;
-    PRNG *generator = factory.getInstance(rng);
-    uint32_t stateSize = generator->getStateSize();
-
-    if(observedOutputs.size() <= stateSize)
-    {
-        std::cout << WARN << "Not enough observed values to perform state inference." << std::endl;
-        std::cout << WARN << "Try again with more than " << stateSize << " values" << std::endl;
-        return false;
-    }
-
-    double highscore = 0.0;
-
-    /* Guaranteed from the above to loop at least one time */
-    std::vector<double> scores;
-    std::vector<uint32_t> best_state;
-    for(uint32_t i = 0; i < (observedOutputs.size() - stateSize); i++)
-    {
-        std::vector<uint32_t>::const_iterator first = observedOutputs.begin() + i;
-        std::vector<uint32_t>::const_iterator last = observedOutputs.begin() + i + stateSize;
-        std::vector<uint32_t> state(first, last);
-
-        /* Make predictions based on the state */
-        std::vector<uint32_t> evidenceForward
-            ((std::vector<uint32_t>::const_iterator)observedOutputs.begin(), first);
-        std::vector<uint32_t> evidenceBackward
-            (last+1, (std::vector<uint32_t>::const_iterator)observedOutputs.end());
-        generator->setState(state);
-
-        /* Provide additional evidence for tuning on PRNGs that require it */
-        generator->setEvidence(observedOutputs);
-        generator->tune(evidenceForward, evidenceBackward);
-
-        std::vector<uint32_t> predictions_forward =
-            generator->predictForward(((observedOutputs.size() - stateSize) - i));
-        std::vector<uint32_t> predictions_backward =
-            generator->predictBackward(i);
-
-        /* Test the prediction against the rest of the observed data */
-        /* Forward */
-        uint32_t matchesFound = 0;
-        uint32_t index_pred = 0;
-        uint32_t index_obs = i + stateSize;
-        while(index_obs < observedOutputs.size() && index_pred < predictions_forward.size())
-        {
-            if(observedOutputs[index_obs] == predictions_forward[index_pred])
-            {
-                matchesFound++;
-                index_obs++;
-            }
-            index_pred++;
-        }
-
-        /* Backward */
-        index_pred = 0;
-        index_obs = i;
-        while(index_obs > 0 && index_pred < predictions_backward.size())
-        {
-            if(observedOutputs[index_obs] == predictions_backward[index_pred])
-            {
-                matchesFound++;
-                index_obs--;
-            }
-            index_pred++;
-        }
-
-        /* If we get a perfect guess, then try reversing out the seed, and exit */
-        if(matchesFound == (observedOutputs.size() - stateSize))
-        {
-            uint32_t outSeed = 0;
-            if(generator->reverseToSeed(&outSeed, 10000))
-            {
-                /* We win! */
-                std::cout << SUCCESS << "Found seed " << outSeed << std::endl;
-            }
-            else
-            {
-                std::cout << SUCCESS << "Found state: " << std::endl;
-                std::vector<uint32_t> state = generator->getState();
-                for(uint32_t j = 0; j < state.size(); j++)
-                {
-                    std::cout << state[j] << std::endl;
-                }
-            }
-            return true;
-        }
-
-        double score = (double)(matchesFound*100) / (double)(observedOutputs.size() - stateSize);
-        scores.push_back(score);
-        if(score > highscore)
-        {
-            best_state = generator->getState();
-        }
-    }
-
-    /* Analyze scores */
-    //TODO
-    if(highscore > 0)
-    {
-        std::cout << SUCCESS << "Best state guess, with confidence of: " << highscore << '%' << std::endl;
-        std::vector<uint32_t> state = generator->getState();
-        for(uint32_t j = 0; j < state.size(); j++)
-        {
-            std::cout << SUCCESS << state[j] << std::endl;
-        }
-    }
-    else
-    {
-        std::cout << INFO << "State Inference failed" << std::endl;
-    }
-
-    return false;
-}
-
-std::vector<uint32_t> GenerateSample(uint32_t seed, uint32_t depth, std::string rng)
-{
-    PRNGFactory factory;
-    PRNG *generator = factory.getInstance(rng);
-    generator->seed(seed);
-    PRNG *distance_gen= factory.getInstance(rng);
-    distance_gen->seed(time(NULL));
-    uint32_t distance = distance_gen->random() % (depth - 10);
-
-    // Burn a bunch of random numbers
-    for (uint32_t index = 0; index < distance; ++index)
-    {
-        generator->random();
-    }
-
-    std::vector<uint32_t> results;
-    for (unsigned int index = 0; index < 10; ++index)
-    {
-        results.push_back(generator->random());
-    }
-    delete generator;
-    delete distance_gen;
-    return results;
-}
-
-/* For easier testing, will generate a series of random numbers at a given seed */
-std::vector<uint32_t> GenerateSample(std::vector<uint32_t> state, uint32_t depth, std::string rng)
-{
-    PRNGFactory factory;
-    PRNG *generator = factory.getInstance(rng);
-    generator->setState(state);
-
-    std::vector<uint32_t> results;
-    for (unsigned int index = 0; index < depth; ++index)
-    {
-        results.push_back(generator->random());
-    }
-    delete generator;
-    return results;
-}
+};
 
 #endif /* UNTWISTER_H_ */
