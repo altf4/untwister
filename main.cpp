@@ -193,6 +193,11 @@ int main(int argc, char *argv[])
                     std::cerr << WARN << "ERROR: Please enter a valid depth > 1" << std::endl;
                     return EXIT_FAILURE;
                 }
+                else
+                {
+                    std::cout << INFO << "Depth set to: " << depth << std::endl;
+                    untwister->setDepth(depth);
+                }
                 break;
             }
             case 'i':
@@ -220,6 +225,7 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
+                    std::cout << INFO << "Threads set to: " << threads << std::endl;
                     untwister->setThreads(threads);
                 }
                 break;
@@ -234,6 +240,7 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
+                    std::cout << INFO << "Minimum confidence set to: " << minimumConfidence << std::endl;
                     untwister->setMinConfidence(minimumConfidence);
                 }
                 break;

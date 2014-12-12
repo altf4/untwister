@@ -112,7 +112,7 @@ list Prngs()
     list prngs;
     for(unsigned int index = 0; index < names.size(); ++index)
     {
-        prngs.append(names.at(index));
+        prngs.append(names[index]);
     }
     delete untwister;
     return prngs;
