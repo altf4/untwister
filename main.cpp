@@ -105,7 +105,7 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
             seedsPerSec = (double) sum / (double) time_span.count();
             if (0 == count % 20)
             {
-                timeLeft = ((double) totalWork / seedsPerSec) / 60.0;
+                timeLeft = ((double) (totalWork - sum) / seedsPerSec) / 60.0;
             }
         }
 
