@@ -61,7 +61,7 @@ private:
     void next_state(struct MT *mt);
     uint32_t genrand_int32(struct MT *mt);
 
-    MT *mt;
+    MT *m_mt;
     uint32_t seedValue;
 };
 
