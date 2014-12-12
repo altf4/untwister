@@ -85,12 +85,12 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
 
     double percent = 0.0;
     double seedsPerSec = 0.0;
+    double timeLeft = 0.0;
     steady_clock::time_point started = steady_clock::now();
     std::vector<uint32_t> *status = untwister->getStatus();
     std::atomic<bool> *isCompleted = untwister->getIsCompleted();
     char spinner[] = {'|', '/', '-', '\\'};
     unsigned int count = 0;
-
     while (!isCompleted->load(std::memory_order_relaxed))
     {
         unsigned int sum = 0;
@@ -103,11 +103,17 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
         if (0 < time_span.count())
         {
             seedsPerSec = (double) sum / (double) time_span.count();
+            if (0 == count % 20)
+            {
+                timeLeft = ((double) totalWork / seedsPerSec) / 60.0;
+            }
         }
+
         std::cout << CLEAR << BOLD << PURPLE << "[" << spinner[count % 4] << "]" << RESET
                   << " Progress: " << percent << '%'
                   << "  [" << sum << " / " << totalWork << "]"
-                  << "  ~" << seedsPerSec << "/sec";
+                  << "  ~" << seedsPerSec << "/sec"
+                  << "  " << timeLeft << " minute(s)";
         std::cout.flush();
         ++count;
         std::this_thread::sleep_for(milliseconds(100));
@@ -229,7 +235,6 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    std::cout << INFO << "Threads set to: " << threads << std::endl;
                     untwister->setThreads(threads);
                 }
                 break;

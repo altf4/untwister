@@ -143,7 +143,6 @@ void Untwister::worker(unsigned int id, uint32_t startingSeed, uint32_t endingSe
 */
 bool Untwister::inferState()
 {
-    std::cout << INFO << "Trying state inference" << std::endl;
 
     PRNGFactory factory;
     PRNG *generator = factory.getInstance(prng);
@@ -152,7 +151,7 @@ bool Untwister::inferState()
     if(observedOutputs->size() <= stateSize)
     {
         std::cout << WARN << "Not enough observed values to perform state inference,"
-                          << " try again with more than " << stateSize << " values." << std::endl;
+                  << " try again with more than " << stateSize << " values." << std::endl;
         return false;
     }
 
