@@ -59,14 +59,14 @@ list FindSeed(std::string prng, list inputs, unsigned int threads, float minimum
     /* Convert Python list object to observedOutputs's std::vector<uint32_t> */
     for(unsigned int index = 0; index < len(inputs); ++index)
     {
-        uint32_t data = boost::python::extract<unsigned int>(inputs[index]);
+        uint32_t data = extract<uint32_t>(inputs[index]);
         untwister->getObservedOutputs()->at(index) = data;
     }
 
     /* Suspend Python's thread, so we can use native C++ threads */
     PyThreadState *pyThreadState = PyEval_SaveThread();
 
-    std::vector<std::pair<uint32_t, double> > results = untwister->bruteforce(lowerBoundSeed, upperBoundSeed);
+    auto results = untwister->bruteforce(lowerBoundSeed, upperBoundSeed);
 
 
     /* Clean up and restore Python thread state */
@@ -113,7 +113,7 @@ BOOST_PYTHON_MODULE(untwister) {
     unsigned int threads = std::thread::hardware_concurrency();
     current.attr("THREADS") = threads;
 
-    def("get_prngs", Prngs, "\n List of supported PRNGs");
+    def("get_prngs", Prngs, "\n Get a list of supported PRNGs");
 
     def(
         "find_seed",

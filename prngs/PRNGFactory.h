@@ -12,9 +12,9 @@
 #include <map>
 #include <algorithm>
 
-#include "prngs/Mt19937.h"
-#include "prngs/GlibcRand.h"
-#include "prngs/Ruby.h"
+#include "Mt19937.h"
+#include "GlibcRand.h"
+#include "Ruby.h"
 
 /* Template to bind constructor to mapped string */
 template<typename T> PRNG* create() { return new T; }
