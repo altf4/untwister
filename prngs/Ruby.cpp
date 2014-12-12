@@ -10,13 +10,14 @@
 Ruby::Ruby()
 {
     seedValue = 0;
-    mt = new MT;
-    init_genrand(mt, seedValue);
+    m_mt = new MT;
+    init_genrand(m_mt, seedValue);
 }
 
-Ruby::~Ruby()
+Ruby::~Ruby() 
 {
-    delete mt;
+    delete m_mt;
+    m_mt = NULL;
 }
 
 const std::string Ruby::getName()
@@ -26,10 +27,10 @@ const std::string Ruby::getName()
 
 void Ruby::seed(uint32_t value)
 {
-    delete mt;
-    mt = new MT;
+    delete m_mt;
+    m_mt = new MT;
     seedValue = value;
-    init_genrand(mt, value);
+    init_genrand(m_mt, value);
 }
 
 uint32_t Ruby::getSeed()
@@ -39,7 +40,7 @@ uint32_t Ruby::getSeed()
 
 uint32_t Ruby::random()
 {
-    return genrand_int32(mt);
+    return genrand_int32(m_mt);
 }
 
 

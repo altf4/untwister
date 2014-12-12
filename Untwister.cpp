@@ -26,6 +26,7 @@ Untwister::Untwister()
     depth = DEFAULT_DEPTH;
     minConfidence = DEFAULT_MIN_CONFIDENCE;
     threads = std::thread::hardware_concurrency();
+    prng = "glibc-rand";
     answers = new std::vector<std::vector<Seed>* >(threads);
     status = new std::vector<uint32_t>(threads);
 }
@@ -38,6 +39,7 @@ Untwister::Untwister(unsigned int observationSize)
     depth = DEFAULT_DEPTH;
     minConfidence = DEFAULT_MIN_CONFIDENCE;
     threads = std::thread::hardware_concurrency();
+    prng = "glibc-rand";
     answers = new std::vector<std::vector<Seed>* >(threads);
     status = new std::vector<uint32_t>(threads);
 }
