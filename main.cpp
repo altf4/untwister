@@ -20,6 +20,7 @@
 #include <getopt.h>
 #include <execinfo.h>
 #include <signal.h>
+#include <chrono>
 #include <atomic>
 #include <thread>
 
@@ -28,6 +29,7 @@
 
 using std::chrono::seconds;
 using std::chrono::milliseconds;
+using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::steady_clock;
 
@@ -76,25 +78,33 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
     std::atomic<bool>* isRunning = untwister->getIsRunning();
     while (!isRunning->load(std::memory_order_relaxed))
     {
-        std::this_thread::sleep_for(milliseconds(150));
+        std::this_thread::sleep_for(milliseconds(100));
     }
 
-    double percent = 0;
+    double percent = 0.0;
+    double seedsPerSec = 0.0;
+    steady_clock::time_point started = steady_clock::now();
     std::vector<uint32_t> *status = untwister->getStatus();
     std::atomic<bool> *isCompleted = untwister->getIsCompleted();
 
     while (!isCompleted->load(std::memory_order_relaxed))
     {
         unsigned int sum = 0;
+        duration<double> time_span = duration_cast<duration<double>>(steady_clock::now() - started);
         for (unsigned int index = 0; index < status->size(); ++index)
         {
             sum += status->at(index);
         }
         percent = ((double) sum / (double) totalWork) * 100.0;
-        std::cout << CLEAR << DEBUG << "Progress: " << sum << " / " << totalWork
-                  << " (" << percent << '%' << ")";
+        if (0 < time_span.count())
+        {
+            seedsPerSec = (double) sum / (double) time_span.count();
+        }
+        std::cout << CLEAR << DEBUG << "Progress: " << percent << '%'
+                  << "  [" << sum << " / " << totalWork << "]"
+                  << "  ~" << seedsPerSec << "/sec";
         std::cout.flush();
-        std::this_thread::sleep_for(milliseconds(150));
+        std::this_thread::sleep_for(milliseconds(100));
     }
     std::cout << CLEAR;
 }
