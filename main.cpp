@@ -88,6 +88,8 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
     steady_clock::time_point started = steady_clock::now();
     std::vector<uint32_t> *status = untwister->getStatus();
     std::atomic<bool> *isCompleted = untwister->getIsCompleted();
+    char spinner[] = {'|', '/', '-', '\\'};
+    unsigned int count = 0;
 
     while (!isCompleted->load(std::memory_order_relaxed))
     {
@@ -102,10 +104,12 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
         {
             seedsPerSec = (double) sum / (double) time_span.count();
         }
-        std::cout << CLEAR << DEBUG << "Progress: " << percent << '%'
+        std::cout << CLEAR << BOLD << PURPLE << "[" << spinner[count % 4] << "]" << RESET
+                  << " Progress: " << percent << '%'
                   << "  [" << sum << " / " << totalWork << "]"
                   << "  ~" << seedsPerSec << "/sec";
         std::cout.flush();
+        ++count;
         std::this_thread::sleep_for(milliseconds(100));
     }
     std::cout << CLEAR;
@@ -299,7 +303,10 @@ int main(int argc, char *argv[])
     {
         return EXIT_SUCCESS;
     }
+
     FindSeed(untwister, lowerBoundSeed, upperBoundSeed);
+    delete untwister;
+
     return EXIT_SUCCESS;
 }
 
