@@ -1,13 +1,14 @@
 Untwister
 =========
 
-Multi-threaded seed recovery tool for common PRNGs
+Multi-threaded seed recovery tool for common PRNGs.
+
 
 Supported PRNGs
 =================
-* Glibc rand()
-* Mersenne Twister (mt19937)
-* Ruby's MT-variant rand()
+* Glibc's rand()
+* Mersenne Twister (MT19937)
+* Ruby's MT-variant DEFAULT::rand()
 
 Usage
 ========
@@ -53,9 +54,19 @@ Examples:
 Python Bindings
 =================
 * Python 2.7
-* Requires Boost C++ Python library (use apt-get or brew)
+* Requires Boost C++ Python library
+
+### Ubuntu/Debian Linux
 
 ```
+sudo apt-get install python-dev libboost-python-dev
+make python
+```
+
+### OSX
+
+```
+brew install boost --with-python
 make python
 ```
 

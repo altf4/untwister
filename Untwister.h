@@ -51,9 +51,11 @@ public:
     bool inferState();
 
     std::vector<std::string> getPRNGNames();
-    void setPRNGName(std::string prng);
-    void setPRNGName(char *prng);
-    std::string getPRNGName();
+    void setPRNG(std::string prng);
+    void setPRNG(char *prng);
+    std::string getPRNG();
+    bool isSupportedPRNG(std::string prng);
+    bool isSupportedPRNG(char* prng);
 
     void setMinConfidence(double minConfidence);
     double getMinConfidence();

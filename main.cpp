@@ -61,7 +61,9 @@ void Usage(Untwister *untwister)
     {
         std::cout << "\t\t" << BOLD << " * " << RESET << names[index];
         if (index == 0)
+        {
             std::cout << " (default)";
+        }
         std::cout << std::endl;
     }
     std::cout << "\t-u\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 " << std::endl;
@@ -111,7 +113,7 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
 
 void FindSeed(Untwister *untwister, uint32_t lowerBoundSeed, uint32_t upperBoundSeed)
 {
-    std::cout << INFO << "Looking for seed using " << BOLD << untwister->getPRNGName() << RESET << std::endl;
+    std::cout << INFO << "Looking for seed using " << BOLD << untwister->getPRNG() << RESET << std::endl;
     std::cout << INFO << "Spawning " << untwister->getThreads() << " worker thread(s) ..." << std::endl;
 
 
@@ -172,15 +174,14 @@ int main(int argc, char *argv[])
             }
             case 'r':
             {
-                std::vector<std::string> names = untwister->getPRNGNames();
-                if (std::find(names.begin(), names.end(), optarg) == names.end())
+                if (!untwister->isSupportedPRNG(optarg))
                 {
                     std::cerr << WARN << "ERROR: The PRNG \"" << optarg << "\" is not supported, see -h" << std::endl;
                     return EXIT_FAILURE;
                 }
                 else
                 {
-                    untwister->setPRNGName(optarg);
+                    untwister->setPRNG(optarg);
                 }
                 break;
             }

@@ -354,19 +354,33 @@ std::vector<std::string> Untwister::getPRNGNames()
 }
 
 
-void Untwister::setPRNGName(std::string prng)
+void Untwister::setPRNG(std::string prng)
 {
-    this->prng = prng;
+    if (isSupportedPRNG(prng))
+    {
+        this->prng = prng;
+    }
 }
 
-void Untwister::setPRNGName(char *prng)
+void Untwister::setPRNG(char *prng)
 {
-    this->prng = std::string(prng);
+    setPRNG(std::string(prng));
 }
 
-std::string Untwister::getPRNGName()
+std::string Untwister::getPRNG()
 {
     return prng;
+}
+
+bool Untwister::isSupportedPRNG(char *prng)
+{
+    return isSupportedPRNG(std::string(prng));
+}
+
+bool Untwister::isSupportedPRNG(std::string prng)
+{
+    std::vector<std::string> names = getPRNGNames();
+    return std::find(names.begin(), names.end(), prng) == names.end() ? false:true;
 }
 
 void Untwister::setThreads(unsigned int threads)
