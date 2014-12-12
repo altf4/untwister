@@ -45,22 +45,10 @@ Untwister::Untwister(unsigned int observationSize)
 Untwister::~Untwister()
 {
     delete isCompleted;
+    delete isRunning;
     delete observedOutputs;
-    if (answers != NULL)
-    {
-        for (unsigned int index = 0; answers->size(); ++ index)
-        {
-            if (answers->at(index) != NULL)
-            {
-                delete answers->at(index);
-            }
-        }
-        delete answers;
-    }
-    if (status != NULL)
-    {
-        delete status;
-    }
+    delete answers;
+    delete status;
 }
 
 std::vector<Seed> Untwister::bruteforce(uint32_t lowerBoundSeed, uint32_t upperBoundSeed)
@@ -91,6 +79,7 @@ std::vector<Seed> Untwister::bruteforce(uint32_t lowerBoundSeed, uint32_t upperB
         {
             results.push_back(answers->at(id)->at(index));
         }
+        delete answers->at(id);
     }
 
     return results;

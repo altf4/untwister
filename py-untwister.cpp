@@ -10,6 +10,7 @@
 #include <boost/python.hpp>
 #include <execinfo.h>
 #include <signal.h>
+#include <iostream>
 
 #include "Untwister.h"
 
@@ -31,6 +32,7 @@ void handler(int sig)
 void PythonInit()
 {
     signal(SIGSEGV, handler);
+    signal(SIGABRT, handler);
     if(!Py_IsInitialized())
     {
         Py_Initialize();
@@ -39,7 +41,7 @@ void PythonInit()
 }
 
 /* Find a seed */
-list FindSeed(const std::string& prng, list inputs, unsigned int threads, float minimumConfidence,
+list FindSeed(std::string prng, list inputs, unsigned int threads, float minimumConfidence,
     uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth)
 {
     Untwister *untwister = new Untwister(len(inputs));
@@ -81,41 +83,21 @@ list FindSeed(const std::string& prng, list inputs, unsigned int threads, float 
     return pyResults;
 }
 
-/* Generate a sample sequence */
-list Sample(std::string prng, uint32_t seed, uint32_t depth)
-{
-    Untwister *untwister = new Untwister();
-    if(!untwister->isSupportedPRNG(prng))
-    {
-        /* Raise Python Exception */
-        PyErr_SetString(PyExc_ValueError, "Unsupported PRNG");
-        throw error_already_set();
-    }
-
-    untwister->setPRNG(prng);
-    untwister->setDepth(depth);
-
-    std::vector<uint32_t> results = untwister->generateSampleFromSeed(seed);
-    list sample;
-    for(unsigned int index = 0; index < results.size(); ++index)
-    {
-        sample.append(results.at(index));
-    }
-    return sample;
-}
-
 /* List all supported PRNGs */
 list Prngs()
 {
     Untwister *untwister = new Untwister();
     std::vector<std::string> names = untwister->getPRNGNames();
-    list prngs;
+
+    list pyPRNGs;
     for(unsigned int index = 0; index < names.size(); ++index)
     {
-        prngs.append(names[index]);
+        pyPRNGs.append(names[index]);
     }
+
     delete untwister;
-    return prngs;
+
+    return pyPRNGs;
 }
 
 /* Python interface */
@@ -139,13 +121,6 @@ BOOST_PYTHON_MODULE(untwister) {
         (arg("prng"), arg("inputs"), arg("threads") = threads, arg("confidence") = 100.0, \
             arg("lower") = 0, arg("upper") = UINT_MAX, arg("depth") = 1000),
         "\nThis is the cracking module for a generic mersenne twister 19932"
-    );
-
-    def(
-        "generate_sample",
-        Sample,
-        (arg("prng"), arg("seed"), arg("depth") = 1000),
-        "\n Generate a sample using a given PRNG"
     );
 
 }
