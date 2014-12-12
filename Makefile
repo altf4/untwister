@@ -6,8 +6,8 @@ OBJS = ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o .
 
 all: GlibcRand Mt19937 RubyRand LSBState PRNGFactory Untwister
 	# Make the cli binary
-	g++ $(CPPFLAGS) -MF"main.d" -MT"main.d" -o "main.o" "./main.cpp"
-	g++ -std=gnu++11 -O3 $(OBJS) main.o -o untwister
+	g++ $(CPPFLAGS) -pthread -MF"main.d" -MT"main.d" -o "main.o" "./main.cpp"
+	g++ -std=gnu++11 -O3 -pthread $(OBJS) main.o -o untwister
 
 python: GlibcRand Mt19937 RubyRand LSBState PRNGFactory Untwister
 	# Make the shared object
