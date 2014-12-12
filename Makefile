@@ -2,7 +2,7 @@
 CPPFLAGS = -std=gnu++11 -O3 -g3 -Wall -c -fmessage-length=0 -MMD -fPIC
 PYTHON = /usr/include/python2.7
 BOOST_INC = /usr/include
-OBJS = ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./PRNGFactory.o ./Untwister.o
+OBJS = ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./prngs/PRNGFactory.o ./Untwister.o
 
 all: GlibcRand Mt19937 RubyRand LSBState PRNGFactory Untwister
 	# Make the cli binary
@@ -27,7 +27,7 @@ LSBState:
 	g++ $(CPPFLAGS) -MF"prngs/LSBState.d" -MT"prngs/LSBState.d" -o "prngs/LSBState.o" "./prngs/LSBState.cpp"
 
 PRNGFactory:
-	g++ $(CPPFLAGS) -MF"PRNGFactory.d" -MT"PRNGFactory.d" -o "PRNGFactory.o" "./PRNGFactory.cpp"
+	g++ $(CPPFLAGS) -MF"prngs/PRNGFactory.d" -MT"prngs/PRNGFactory.d" -o "prngs/PRNGFactory.o" "./prngs/PRNGFactory.cpp"
 
 Untwister:
 	g++ $(CPPFLAGS) -pthread -MF"Untwister.d" -MT"Untwister.d" -o "Untwister.o" "./Untwister.cpp"

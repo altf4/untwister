@@ -8,6 +8,7 @@
 #ifndef GLIBCRAND_H_
 #define GLIBCRAND_H_
 
+#include <algorithm>
 #include <random>
 #include <deque>
 #include "PRNG.h"

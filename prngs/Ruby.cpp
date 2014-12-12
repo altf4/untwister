@@ -14,11 +14,9 @@ Ruby::Ruby()
     init_genrand(mt, seedValue);
 }
 
-Ruby::~Ruby() {
-    if (mt != NULL) {
-        delete mt;
-        mt = NULL;
-    }
+Ruby::~Ruby()
+{
+    delete mt;
 }
 
 const std::string Ruby::getName()
@@ -28,10 +26,7 @@ const std::string Ruby::getName()
 
 void Ruby::seed(uint32_t value)
 {
-    if (mt != NULL) {
-        delete mt;
-        mt = NULL;
-    }
+    delete mt;
     mt = new MT;
     seedValue = value;
     init_genrand(mt, value);

@@ -29,7 +29,7 @@
 #include <iostream>
 
 #include "ConsoleColors.h"
-#include "PRNGFactory.h"
+#include "prngs/PRNGFactory.h"
 #include "prngs/PRNG.h"
 
 // Pair of <seed, quality of fit>
