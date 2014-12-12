@@ -126,18 +126,18 @@ void FindSeed(Untwister *untwister, uint32_t lowerBoundSeed, uint32_t upperBound
     std::cout << INFO << "Looking for seed using " << BOLD << untwister->getPRNG() << RESET << std::endl;
     std::cout << INFO << "Spawning " << untwister->getThreads() << " worker thread(s) ..." << std::endl;
 
-
-    /* Each thread needs their own set of answers to avoid locking */
-
     steady_clock::time_point elapsed = steady_clock::now();
-
     std::thread progressThread(DisplayProgress, untwister, upperBoundSeed - lowerBoundSeed);
 
-    std::vector<std::pair<uint32_t, double> > results;
-    results = untwister->bruteforce(lowerBoundSeed, upperBoundSeed);
-
+    auto results = untwister->bruteforce(lowerBoundSeed, upperBoundSeed);
+    auto isCompleted = untwister->getIsCompleted();
+    if (!isCompleted->load(std::memory_order_relaxed))
+    {
+        isCompleted->store(true, std::memory_order_relaxed);
+    }
     progressThread.join();
 
+    /* Total time elapsed */
     std::cout << INFO << "Completed in "
               << duration_cast<seconds>(steady_clock::now() - elapsed).count()
               << " second(s)" << std::endl;
