@@ -73,18 +73,18 @@ public:
     std::vector<uint32_t> generateSampleFromState();
 
 private:
-    unsigned int threads;
-    double minConfidence;
-    uint32_t depth;
-    std::string prng;
-    std::atomic<bool> *isCompleted;
-    std::atomic<bool> *isRunning;
-    std::vector<uint32_t> *status;
-    std::vector<std::vector<Seed>* > *answers;
-    std::vector<uint32_t> *observedOutputs;
+    unsigned int m_threads;
+    double m_minConfidence;
+    uint32_t m_depth;
+    std::string m_prng;
+    std::atomic<bool> *m_isCompleted;
+    std::atomic<bool> *m_isRunning;
+    std::vector<uint32_t> *m_status;
+    std::vector<std::vector<Seed>* > *m_answers;
+    std::vector<uint32_t> *m_observedOutputs;
 
     void worker(unsigned int id, uint32_t startingSeed, uint32_t endingSeed);
-    std::vector<uint32_t> divisionOfLabor(uint32_t sizeOfWork, uint32_t numberOfWorkers);
+    std::vector<uint32_t> divisionOfLabor(uint32_t sizeOfWork);
 
 };
 
