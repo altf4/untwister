@@ -54,6 +54,9 @@ private:
 
     /* Keeps track of what LSBs are known */
     std::vector<LSBState> m_LSBMap;
+    int32_t m_glibcstate[32];
+    int32_t *m_fptr;
+    int32_t *m_rptr;
 };
 
 #endif /* GLIBCRAND_H_ */

@@ -32,10 +32,41 @@ const std::string GlibcRand::getName()
     return GLIBC_RAND;
 }
 
-void GlibcRand::seed(uint32_t value)
+void GlibcRand::seed(uint32_t seed)
 {
-    seedValue = value;
-    srand(value);
+    long int i;
+    int32_t word;
+    int32_t *dst;
+    int kc;
+
+    /* We must make sure the seed is not 0.  Take arbitrarily 1 in this case.  */
+    if (seed == 0)
+        seed = 1;
+    m_glibcstate[0] = seed;
+
+    dst = m_glibcstate;
+    word = seed;
+    kc = 31;
+    for (i = 1; i < kc; ++i)
+    {
+        /* This does:
+        state[i] = (16807 * state[i - 1]) % 2147483647;
+        but avoids overflowing 31 bits.  */
+        long int hi = word / 127773;
+        long int lo = word % 127773;
+        word = 16807 * lo - 2836 * hi;
+        if (word < 0)
+            word += 2147483647;
+        *++dst = word;
+    }
+
+    m_fptr = &m_glibcstate[3];
+    m_rptr = &m_glibcstate[0];
+    kc *= 10;
+    while (--kc >= 0)
+    {
+        random();
+    }
 }
 
 uint32_t GlibcRand::getSeed()
@@ -45,7 +76,33 @@ uint32_t GlibcRand::getSeed()
 
 uint32_t GlibcRand::random()
 {
-    return rand();
+    int32_t result;
+    int32_t *state = m_glibcstate;
+
+    int32_t *fptr = m_fptr;
+    int32_t *rptr = m_rptr;
+    int32_t *end_ptr = &m_glibcstate[31];
+    int32_t val;
+
+    val = *fptr += *rptr;
+    /* Chucking least random bit.  */
+    result = (val >> 1) & 0x7fffffff;
+    ++fptr;
+    if (fptr >= end_ptr)
+	{
+        fptr = state;
+        ++rptr;
+	}
+    else
+	{
+        ++rptr;
+        if (rptr >= end_ptr)
+            rptr = state;
+	}
+    m_fptr = fptr;
+    m_rptr = rptr;
+
+    return result;
 }
 
 uint32_t GlibcRand::getStateSize(void)
@@ -382,4 +439,3 @@ void GlibcRand::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t
     tune_chainChecking();
     tune_repeatedIncrements();
 }
-
