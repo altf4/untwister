@@ -35,7 +35,7 @@ const std::string GlibcRand::getName()
 void GlibcRand::seed(uint32_t value)
 {
     seedValue = value;
-    srand(value);
+    m_srand(value);
 }
 
 uint32_t GlibcRand::getSeed()
@@ -45,7 +45,7 @@ uint32_t GlibcRand::getSeed()
 
 uint32_t GlibcRand::random()
 {
-    return rand();
+    return m_rand();
 }
 
 uint32_t GlibcRand::getStateSize(void)
@@ -381,5 +381,292 @@ void GlibcRand::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t
 {
     tune_chainChecking();
     tune_repeatedIncrements();
+}
+
+
+/* GNU Glibc RAND Implementation */
+
+int GlibcRand::m_rand()
+{
+    return (int) __random();
+}
+
+void GlibcRand::m_srand(unsigned int seed)
+{
+    __srandom(seed);
+}
+
+
+long int GlibcRand::__random()
+{
+    int32_t retval;
+
+    //__libc_lock_lock (lock);
+    (void) __random_r(&unsafe_state, &retval);
+    //__libc_lock_unlock (lock);
+
+    return retval;
+}
+
+/* Initialize the random number generator based on the given seed.  If the
+   type is the trivial no-state-information type, just remember the seed.
+   Otherwise, initializes state[] based on the given "seed" via a linear
+   congruential generator.  Then, the pointers are set to known locations
+   that are exactly rand_sep places apart.  Lastly, it cycles the state
+   information a given number of times to get rid of any initial dependencies
+   introduced by the L.C.R.N.G.  Note that the initialization of randtbl[]
+   for default usage relies on values produced by this routine.  */
+void GlibcRand::__srandom(unsigned int x)
+{
+      //__libc_lock_lock (lock);
+      (void) __srandom_r(x, &unsafe_state);
+      //__libc_lock_unlock (lock);
+}
+
+
+/* Initialize the random number generator based on the given seed.  If the
+   type is the trivial no-state-information type, just remember the seed.
+   Otherwise, initializes state[] based on the given "seed" via a linear
+   congruential generator.  Then, the pointers are set to known locations
+   that are exactly rand_sep places apart.  Lastly, it cycles the state
+   information a given number of times to get rid of any initial dependencies
+   introduced by the L.C.R.N.G.  Note that the initialization of randtbl[]
+   for default usage relies on values produced by this routine.  */
+int GlibcRand::__srandom_r(unsigned int seed, struct random_data *buf)
+{
+    int type;
+    int32_t *state;
+    long int i;
+    int32_t word;
+    int32_t *dst;
+    int kc;
+
+    if (buf == NULL)
+    return -1; // goto fail
+    type = buf->rand_type;
+    if ((unsigned int) type >= MAX_TYPES)
+    return -1; // goto fail
+
+    state = buf->state;
+    /* We must make sure the seed is not 0.  Take arbitrarily 1 in this case.  */
+    if (seed == 0)
+    seed = 1;
+    state[0] = seed;
+    if (type == TYPE_0)
+    return 0; // goto done
+
+    dst = state;
+    word = seed;
+    kc = buf->rand_deg;
+    for (i = 1; i < kc; ++i)
+    {
+        /* This does:
+        state[i] = (16807 * state[i - 1]) % 2147483647;
+        but avoids overflowing 31 bits.  */
+        long int hi = word / 127773;
+        long int lo = word % 127773;
+        word = 16807 * lo - 2836 * hi;
+        if (word < 0)
+            word += 2147483647;
+        *++dst = word;
+    }
+
+    buf->fptr = &state[buf->rand_sep];
+    buf->rptr = &state[0];
+    kc *= 10;
+    while (--kc >= 0)
+    {
+        int32_t discard;
+        (void) __random_r (buf, &discard);
+    }
+    return 0;
+
+/*
+ done:
+  return 0;
+
+ fail:
+  return -1;
+*/
+}
+
+
+/* Initialize the state information in the given array of N bytes for
+   future random number generation.  Based on the number of bytes we
+   are given, and the break values for the different R.N.G.'s, we choose
+   the best (largest) one we can and set things up for it.  srandom is
+   then called to initialize the state information.  Note that on return
+   from srandom, we set state[-1] to be the type multiplexed with the current
+   value of the rear pointer; this is so successive calls to initstate won't
+   lose this information and will be able to restart with setstate.
+   Note: The first thing we do is save the current state, if any, just like
+   setstate so that it doesn't matter when initstate is called.
+   Returns 0 on success, non-zero on failure.  */
+int GlibcRand::__initstate_r(unsigned int seed, char *arg_state, size_t n, struct random_data *buf)
+{
+  if (buf == NULL)
+    return -1; // goto fail
+
+  int32_t *old_state = buf->state;
+  if (old_state != NULL)
+    {
+      int old_type = buf->rand_type;
+      if (old_type == TYPE_0)
+    old_state[-1] = TYPE_0;
+      else
+    old_state[-1] = (MAX_TYPES * (buf->rptr - old_state)) + old_type;
+    }
+
+  int type;
+  if (n >= BREAK_3)
+    type = n < BREAK_4 ? TYPE_3 : TYPE_4;
+  else if (n < BREAK_1)
+    {
+      if (n < BREAK_0)
+        return -1; // goto fail
+
+      type = TYPE_0;
+    }
+  else
+    type = n < BREAK_2 ? TYPE_1 : TYPE_2;
+
+  int degree = random_poly_info.degrees[type];
+  int separation = random_poly_info.seps[type];
+
+  buf->rand_type = type;
+  buf->rand_sep = separation;
+  buf->rand_deg = degree;
+  int32_t *state = &((int32_t *) arg_state)[1]; /* First location.  */
+  /* Must set END_PTR before srandom.  */
+  buf->end_ptr = &state[degree];
+
+  buf->state = state;
+
+  __srandom_r (seed, buf);
+
+  state[-1] = TYPE_0;
+  if (type != TYPE_0)
+    state[-1] = (buf->rptr - state) * MAX_TYPES + type;
+
+  return 0;
+
+/* fail:
+  __set_errno (EINVAL);
+  return -1;
+*/
+}
+
+/* Restore the state from the given state array.
+   Note: It is important that we also remember the locations of the pointers
+   in the current state information, and restore the locations of the pointers
+   from the old state information.  This is done by multiplexing the pointer
+   location into the zeroth word of the state information. Note that due
+   to the order in which things are done, it is OK to call setstate with the
+   same state as the current state
+   Returns 0 on success, non-zero on failure.  */
+int GlibcRand::__setstate_r(char *arg_state, struct random_data *buf)
+{
+  int32_t *new_state = 1 + (int32_t *) arg_state;
+  int type;
+  int old_type;
+  int32_t *old_state;
+  int degree;
+  int separation;
+
+  if (arg_state == NULL || buf == NULL)
+    return -1; // goto fail
+
+  old_type = buf->rand_type;
+  old_state = buf->state;
+  if (old_type == TYPE_0)
+    old_state[-1] = TYPE_0;
+  else
+    old_state[-1] = (MAX_TYPES * (buf->rptr - old_state)) + old_type;
+
+  type = new_state[-1] % MAX_TYPES;
+  if (type < TYPE_0 || type > TYPE_4)
+    return -1; // goto fail
+
+  buf->rand_deg = degree = random_poly_info.degrees[type];
+  buf->rand_sep = separation = random_poly_info.seps[type];
+  buf->rand_type = type;
+
+  if (type != TYPE_0)
+    {
+      int rear = new_state[-1] / MAX_TYPES;
+      buf->rptr = &new_state[rear];
+      buf->fptr = &new_state[(rear + separation) % degree];
+    }
+  buf->state = new_state;
+  /* Set end_ptr too.  */
+  buf->end_ptr = &new_state[degree];
+
+  return 0;
+
+/*
+ fail:
+  __set_errno (EINVAL);
+  return -1;
+*/
+}
+
+/* If we are using the trivial TYPE_0 R.N.G., just do the old linear
+   congruential bit.  Otherwise, we do our fancy trinomial stuff, which is the
+   same in all the other cases due to all the global variables that have been
+   set up.  The basic operation is to add the number at the rear pointer into
+   the one at the front pointer.  Then both pointers are advanced to the next
+   location cyclically in the table.  The value returned is the sum generated,
+   reduced to 31 bits by throwing away the "least random" low bit.
+   Note: The code takes advantage of the fact that both the front and
+   rear pointers can't wrap on the same call by not testing the rear
+   pointer if the front one has wrapped.  Returns a 31-bit random number.  */
+
+int GlibcRand::__random_r(struct random_data *buf, int32_t *result)
+{
+    int32_t *state;
+
+    if (buf == NULL || result == NULL)
+        return -1; // goto fail
+
+    state = buf->state;
+
+    if (buf->rand_type == TYPE_0)
+    {
+        int32_t val = state[0];
+        val = ((state[0] * 1103515245) + 12345) & 0x7fffffff;
+        state[0] = val;
+        *result = val;
+    }
+    else
+    {
+        int32_t *fptr = buf->fptr;
+        int32_t *rptr = buf->rptr;
+        int32_t *end_ptr = buf->end_ptr;
+        int32_t val;
+
+        val = *fptr += *rptr;
+        /* Chucking least random bit.  */
+        *result = (val >> 1) & 0x7fffffff;
+        ++fptr;
+        if (fptr >= end_ptr)
+        {
+            fptr = state;
+            ++rptr;
+        }
+        else
+        {
+            ++rptr;
+            if (rptr >= end_ptr)
+                rptr = state;
+        }
+        buf->fptr = fptr;
+        buf->rptr = rptr;
+    }
+    return 0;
+/*
+ fail:
+  __set_errno (EINVAL);
+  return -1;
+*/
 }
 
