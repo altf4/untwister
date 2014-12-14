@@ -155,14 +155,14 @@ BOOST_PYTHON_MODULE(untwister) {
         BruteforceAttack,
         (arg("prng"), arg("observations"), arg("threads") = threads, arg("confidence") = 100.0, \
             arg("lower") = 0, arg("upper") = UINT_MAX, arg("depth") = 1000),
-        "\nThis is the cracking module for a generic mersenne twister 19932"
+        "\nThis function attempts to recover a seed using bruteforce for any supported PRNG"
     );
 
     def(
         "infer_state",
         InferStateAttack,
         (arg("prng"), arg("observations"), arg("confidence") = 100.0),
-        "\nThis is the cracking module for a generic mersenne twister 19932"
+        "\nThis function attempts to infer the internal state of the PRNG"
     );
 
 }
