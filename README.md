@@ -77,8 +77,8 @@ Example script:
 #!/usr/bin/env python
 import untwister
 
-with open('test_ints.txt') as fp:
+with open('observed_ints.txt') as fp:
     sample = [int(line) for line in fp.readlines()]
-    results = untwister.find_seed(untwister.MT19937, sample, threads=4)
+    results = untwister.bruteforce(untwister.MT19937, sample, threads=4)
     print results  # We get back a list of tuples
 ```
