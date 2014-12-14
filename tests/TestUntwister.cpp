@@ -92,9 +92,9 @@ void TestUntwister::setMinConfidenceTest()
 void TestUntwister::setPRNGTest()
 {
     Untwister *untwister = new Untwister();
-    untwister->setPRNG("mt19937");
+    untwister->setPRNG(std::string("mt19937"));
     CPPUNIT_ASSERT(untwister->getPRNG() == "mt19937");
-    untwister->setPRNG("foobar");
+    untwister->setPRNG(std::string("foobar"));
     CPPUNIT_ASSERT(untwister->getPRNG() == "mt19937");
     delete untwister;
 }
@@ -108,7 +108,7 @@ void TestUntwister::mtBruteforceTest()
     }
     CPPUNIT_ASSERT(0 < untwister->getObservedOutputs()->size());
 
-    untwister->setPRNG("mt19937");
+    untwister->setPRNG(std::string("mt19937"));
     auto results = untwister->bruteforce(0, 50000);
 
     CPPUNIT_ASSERT(0 < results.size());
@@ -129,7 +129,7 @@ void TestUntwister::glibcBruteforceTest()
     }
     CPPUNIT_ASSERT(0 < untwister->getObservedOutputs()->size());
 
-    untwister->setPRNG("glibc");
+    untwister->setPRNG(std::string("glibc"));
     untwister->setThreads(1);
     auto results = untwister->bruteforce(0, 50000);
 
@@ -151,7 +151,7 @@ void TestUntwister::rubyBruteforceTest()
     }
     CPPUNIT_ASSERT(0 < untwister->getObservedOutputs()->size());
 
-    untwister->setPRNG("ruby-rand");
+    untwister->setPRNG(std::string("ruby-rand"));
     auto results = untwister->bruteforce(0, 50000);
 
     CPPUNIT_ASSERT(0 < results.size());
