@@ -21,15 +21,15 @@
 
 #include "../ConsoleColors.h"
 #include "TestUntwister.h"
-
+#include "TestMt19937.h"
 
 bool executeAllTests()
 {
     CppUnit::TextUi::TestRunner runner;
     runner.addTest(TestUntwister::suite());
+    runner.addTest(TestMt19937::suite());
     return runner.run();
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -42,4 +42,5 @@ int main(int argc, char *argv[])
     {
         std::cout << WARN << "One or more tests failed!" << std::endl;
     }
+    return 0;
 }
