@@ -46,4 +46,4 @@ clean:
 	rm -f ./tests/*.d
 	rm -f *.o
 	rm -f *.d
-	rm -f untwister untwister.so
+	rm -f untwister untwister_tests untwister.so

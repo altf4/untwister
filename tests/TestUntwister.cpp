@@ -9,8 +9,13 @@
 void TestUntwister::setUp()
 {
     m_mtTestInputs = new std::vector<uint32_t>();
+    m_loadTestFile("tests/mt_test_ints.txt", m_mtTestInputs);
+
     m_glibcTestInputs = new std::vector<uint32_t>();
+    m_loadTestFile("tests/glibc_test_ints.txt", m_glibcTestInputs);
+
     m_rubyTestInputs = new std::vector<uint32_t>();
+    m_loadTestFile("tests/ruby_test_ints.txt", m_rubyTestInputs);
 }
 
 void TestUntwister::tearDown()
@@ -20,7 +25,7 @@ void TestUntwister::tearDown()
     delete m_rubyTestInputs;
 }
 
-void TestUntwister::loadTestFile(std::string path, std::vector<uint32_t> *testInputs)
+void TestUntwister::m_loadTestFile(std::string path, std::vector<uint32_t> *testInputs)
 {
     std::ifstream infile(path);
     if (!infile)
@@ -39,5 +44,121 @@ void TestUntwister::initalizationTest()
 {
     Untwister *untwister = new Untwister();
     CPPUNIT_ASSERT(untwister != NULL);
+    delete untwister;
+}
 
+void TestUntwister::setThreadsTest()
+{
+    Untwister *untwister = new Untwister();
+    untwister->setThreads(1);
+    CPPUNIT_ASSERT(untwister->getThreads() == 1);
+    untwister->setThreads(2);
+    CPPUNIT_ASSERT(untwister->getThreads() == 2);
+    untwister->setThreads(3);
+    CPPUNIT_ASSERT(untwister->getThreads() == 3);
+    untwister->setThreads(4);
+    CPPUNIT_ASSERT(untwister->getThreads() == 4);
+    delete untwister;
+}
+
+void TestUntwister::setDepthTest()
+{
+    Untwister *untwister = new Untwister();
+    untwister->setDepth(100);
+    CPPUNIT_ASSERT(untwister->getDepth() == 100);
+    untwister->setDepth(200);
+    CPPUNIT_ASSERT(untwister->getDepth() == 200);
+    untwister->setDepth(3000);
+    CPPUNIT_ASSERT(untwister->getDepth() == 3000);
+    untwister->setDepth(4000);
+    CPPUNIT_ASSERT(untwister->getDepth() == 4000);
+    delete untwister;
+}
+
+void TestUntwister::setMinConfidenceTest()
+{
+    Untwister *untwister = new Untwister();
+    untwister->setMinConfidence(99.0);
+    CPPUNIT_ASSERT(untwister->getMinConfidence() == 99.0);
+    untwister->setMinConfidence(50.0);
+    CPPUNIT_ASSERT(untwister->getMinConfidence() == 50.0);
+    untwister->setMinConfidence(75.75);
+    CPPUNIT_ASSERT(untwister->getMinConfidence() == 75.75);
+    untwister->setMinConfidence(100.0);
+    CPPUNIT_ASSERT(untwister->getMinConfidence() == 100.0);
+    delete untwister;
+}
+
+void TestUntwister::setPRNGTest()
+{
+    Untwister *untwister = new Untwister();
+    untwister->setPRNG("mt19937");
+    CPPUNIT_ASSERT(untwister->getPRNG() == "mt19937");
+    untwister->setPRNG("foobar");
+    CPPUNIT_ASSERT(untwister->getPRNG() == "mt19937");
+    delete untwister;
+}
+
+void TestUntwister::mtBruteforceTest()
+{
+    Untwister *untwister = new Untwister();
+    for (unsigned int index = 0; index < m_mtTestInputs->size(); ++index)
+    {
+        untwister->addObservedOutput(m_mtTestInputs->at(index));
+    }
+    CPPUNIT_ASSERT(0 < untwister->getObservedOutputs()->size());
+
+    untwister->setPRNG("mt19937");
+    auto results = untwister->bruteforce(0, 50000);
+
+    CPPUNIT_ASSERT(0 < results.size());
+    if (0 < results.size())
+    {
+        CPPUNIT_ASSERT(results[0].first == 31337);
+        CPPUNIT_ASSERT(results[0].second == 100.0);
+    }
+    delete untwister;
+}
+
+void TestUntwister::glibcBruteforceTest()
+{
+    Untwister *untwister = new Untwister();
+    for (unsigned int index = 0; index < m_glibcTestInputs->size(); ++index)
+    {
+        untwister->addObservedOutput(m_glibcTestInputs->at(index));
+    }
+    CPPUNIT_ASSERT(0 < untwister->getObservedOutputs()->size());
+
+    untwister->setPRNG("glibc");
+    untwister->setThreads(1);
+    auto results = untwister->bruteforce(0, 50000);
+
+    CPPUNIT_ASSERT(0 < results.size());
+    if (0 < results.size())
+    {
+        CPPUNIT_ASSERT(results[0].first == 31337);
+        CPPUNIT_ASSERT(results[0].second == 100.0);
+    }
+    delete untwister;
+}
+
+void TestUntwister::rubyBruteforceTest()
+{
+    Untwister *untwister = new Untwister();
+    for (unsigned int index = 0; index < m_rubyTestInputs->size(); ++index)
+    {
+        untwister->addObservedOutput(m_rubyTestInputs->at(index));
+    }
+    CPPUNIT_ASSERT(0 < untwister->getObservedOutputs()->size());
+
+    untwister->setPRNG("ruby-rand");
+    auto results = untwister->bruteforce(0, 50000);
+
+    CPPUNIT_ASSERT(0 < results.size());
+    if (0 < results.size())
+    {
+        CPPUNIT_ASSERT(results[0].first == 31337);
+        CPPUNIT_ASSERT(results[0].second == 100.0);
+    }
+    delete untwister;
 }
