@@ -27,6 +27,7 @@ untwister.dSYM/*
 
 #Program executables
 untwister
+untwister_tests
 
 #git files
 *.orig
