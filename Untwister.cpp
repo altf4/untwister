@@ -84,6 +84,11 @@ std::vector<Seed> Untwister::bruteforce(uint32_t lowerBoundSeed, uint32_t upperB
         delete m_answers->at(id);
     }
 
+    if (!m_isCompleted->load(std::memory_order_relaxed))
+    {
+        isCompleted->store(true, std::memory_order_relaxed);
+    }
+
     return results;
 }
 

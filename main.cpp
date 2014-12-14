@@ -130,11 +130,7 @@ void FindSeed(Untwister *untwister, uint32_t lowerBoundSeed, uint32_t upperBound
     std::thread progressThread(DisplayProgress, untwister, upperBoundSeed - lowerBoundSeed);
 
     auto results = untwister->bruteforce(lowerBoundSeed, upperBoundSeed);
-    auto isCompleted = untwister->getIsCompleted();
-    if (!isCompleted->load(std::memory_order_relaxed))
-    {
-        isCompleted->store(true, std::memory_order_relaxed);
-    }
+
     progressThread.join();
 
     /* Total time elapsed */
