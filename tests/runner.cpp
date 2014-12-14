@@ -17,7 +17,6 @@
 
 #include <cppunit/ui/text/TestRunner.h>
 #include <iostream>
-#include <string>
 
 #include "../ConsoleColors.h"
 #include "TestUntwister.h"
