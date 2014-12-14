@@ -129,7 +129,7 @@ void TestUntwister::glibcBruteforceTest()
     }
     CPPUNIT_ASSERT(0 < untwister->getObservedOutputs()->size());
 
-    untwister->setPRNG(std::string("glibc"));
+    untwister->setPRNG(std::string("glibc-rand"));
     untwister->setThreads(1);
     auto results = untwister->bruteforce(0, 50000);
 
