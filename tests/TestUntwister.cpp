@@ -136,7 +136,7 @@ void TestUntwister::glibcBruteforceTest()
     CPPUNIT_ASSERT(0 < results.size());
     if (0 < results.size())
     {
-        CPPUNIT_ASSERT(results[0].first == 31337);
+        CPPUNIT_ASSERT(results[0].first == 1337);
         CPPUNIT_ASSERT(results[0].second == 100.0);
     }
     delete untwister;
