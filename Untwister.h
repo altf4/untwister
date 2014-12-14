@@ -18,22 +18,21 @@
 #ifndef UNTWISTER_H_
 #define UNTWISTER_H_
 
-#include <climits>
-#include <cstdlib>
-#include <cstdint>
 #include <string>
 #include <vector>
 #include <thread>
 #include <atomic>
-#include <fstream>
-#include <iostream>
-
+#include <climits>
+#include <cstdlib>
+#include <cstdint>
+#include <exception>
 #include "ConsoleColors.h"
 #include "prngs/PRNGFactory.h"
 #include "prngs/PRNG.h"
 
 // Pair of <seed, quality of fit>
 typedef std::pair<uint32_t, double> Seed;
+typedef std::pair<std::vector<uint32_t>, double> State;
 
 static const uint32_t DEFAULT_DEPTH = 1000;
 static const double DEFAULT_MIN_CONFIDENCE = 100.0;
@@ -43,14 +42,16 @@ class Untwister
 
 public:
     Untwister();
-    Untwister(unsigned int threads);
-    Untwister(unsigned int threads, unsigned int observationSize);
+    Untwister(unsigned int observationSize);
     virtual ~Untwister();
 
     std::vector<Seed> bruteforce(uint32_t lowerBoundSeed, uint32_t upperBoundSeed);
-    bool inferState();
 
-    std::vector<std::string> getPRNGNames();
+    bool canInferState();
+    State inferState();
+    uint32_t getStateSize();
+
+    std::vector<std::string> getSupportedPRNGs();
     void setPRNG(std::string prng);
     void setPRNG(char *prng);
     std::string getPRNG();
@@ -83,8 +84,8 @@ private:
     std::vector<std::vector<Seed>* > *m_answers;
     std::vector<uint32_t> *m_observedOutputs;
 
-    void worker(unsigned int id, uint32_t startingSeed, uint32_t endingSeed);
-    std::vector<uint32_t> divisionOfLabor(uint32_t sizeOfWork);
+    void m_worker(unsigned int id, uint32_t startingSeed, uint32_t endingSeed);
+    std::vector<uint32_t> m_divisionOfLabor(uint32_t sizeOfWork);
 
 };
 

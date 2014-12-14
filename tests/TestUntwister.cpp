@@ -94,8 +94,8 @@ void TestUntwister::setPRNGTest()
     Untwister *untwister = new Untwister();
     untwister->setPRNG(std::string("mt19937"));
     CPPUNIT_ASSERT(untwister->getPRNG() == "mt19937");
-    untwister->setPRNG(std::string("foobar"));
-    CPPUNIT_ASSERT(untwister->getPRNG() == "mt19937");
+
+    CPPUNIT_ASSERT_THROW(untwister->setPRNG(std::string("foobar")), std::runtime_error);
     delete untwister;
 }
 

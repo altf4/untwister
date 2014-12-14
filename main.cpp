@@ -18,11 +18,12 @@
 
 #include <stdio.h>
 #include <getopt.h>
-#include <execinfo.h>
 #include <signal.h>
 #include <chrono>
 #include <atomic>
 #include <thread>
+#include <fstream>
+#include <iostream>
 
 #include "ConsoleColors.h"
 #include "Untwister.h"
@@ -34,16 +35,7 @@ using std::chrono::duration_cast;
 using std::chrono::steady_clock;
 
 static const unsigned int ONE_YEAR = 31536000;
-static const unsigned int TRACE_SIZE = 10;
 
-/* Segfault handler - for debugging only */
-void handler(int sig) {
-    void *trace[TRACE_SIZE];
-    size_t size = backtrace(trace, TRACE_SIZE);
-    std::cerr << "[!] SIGSEGV: " << sig << std::endl;
-    backtrace_symbols_fd(trace, size, 2);
-    exit(1);
-}
 
 void Usage(Untwister *untwister)
 {
@@ -56,7 +48,7 @@ void Usage(Untwister *untwister)
     std::cout << "\t\tChoosing a higher depth value will make brute forcing take longer (linearly), but is" << std::endl;
     std::cout << "\t\trequired for cases where the generator has been used many times already." << std::endl;
     std::cout << "\t-r <prng>\n\t\tThe PRNG algorithm to use. Supported PRNG algorithms:" << std::endl;
-    std::vector<std::string> names = untwister->getPRNGNames();
+    std::vector<std::string> names = untwister->getSupportedPRNGs();
     for (unsigned int index = 0; index < names.size(); ++index)
     {
         std::cout << "\t\t" << BOLD << " * " << RESET << names[index];
@@ -67,6 +59,7 @@ void Usage(Untwister *untwister)
         std::cout << std::endl;
     }
     std::cout << "\t-u\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 " << std::endl;
+    std::cout << "\t-b\n\t\tAlways bruteforce, even if state inference attack is successful" << std::endl;
     std::cout << "\t\tyear from the current time." << std::endl;
     std::cout << "\t-g <seed>\n\t\tGenerate a test set of random numbers from the given seed (at a random depth)" << std::endl;
     std::cout << "\t-c <confidence>\n\t\tSet the minimum confidence percentage to report" << std::endl;
@@ -121,7 +114,32 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
     std::cout << CLEAR;
 }
 
-void FindSeed(Untwister *untwister, uint32_t lowerBoundSeed, uint32_t upperBoundSeed)
+bool inferenceAttack(Untwister *untwister)
+{
+    if (untwister->canInferState())
+    {
+        std::cout << INFO << "Attempting state inference attack" << std::endl;
+        auto state = untwister->inferState();
+        if (0 < state.second)
+        {
+            std::cout << "Recovered state: " << std::endl;
+            for (uint32_t index = 0; index < state.first.size(); ++index)
+            {
+                std::cout << '\t' << state.first[index] << std::endl;
+            }
+            std::cout << SUCCESS << "Confidence: " << state.second << std::endl;
+        }
+        return 0 < state.second ? true:false;
+    }
+    else
+    {
+        std::cout << WARN << "Not enough observed values to perform state inference, "
+                  << "try again with more than " << untwister->getStateSize() << " values." << std::endl;
+        return false;
+    }
+}
+
+void bruteforceAttack(Untwister *untwister, uint32_t lowerBoundSeed, uint32_t upperBoundSeed)
 {
     std::cout << INFO << "Looking for seed using " << BOLD << untwister->getPRNG() << RESET << std::endl;
     std::cout << INFO << "Spawning " << untwister->getThreads() << " worker thread(s) ..." << std::endl;
@@ -149,20 +167,16 @@ void FindSeed(Untwister *untwister, uint32_t lowerBoundSeed, uint32_t upperBound
 
 int main(int argc, char *argv[])
 {
-    /* Signal Handlers */
-    signal(SIGSEGV, handler);
-    signal(SIGILL, handler);
-    signal(SIGABRT, handler);
-
     int c;
 
     uint32_t lowerBoundSeed = 0;
     uint32_t upperBoundSeed = UINT_MAX;
     uint32_t seed = 0;
     bool generateFlag = false;
+    bool bruteforce = false;
     Untwister *untwister = new Untwister();
 
-    while ((c = getopt(argc, argv, "d:i:g:t:r:c:uh")) != -1)
+    while ((c = getopt(argc, argv, "d:i:g:t:r:c:ubh")) != -1)
     {
         switch (c)
         {
@@ -176,6 +190,11 @@ int main(int argc, char *argv[])
             {
                 lowerBoundSeed = time(NULL) - ONE_YEAR;
                 upperBoundSeed = time(NULL) + ONE_YEAR;
+                break;
+            }
+            case 'b':
+            {
+                bruteforce = true;
                 break;
             }
             case 'r':
@@ -253,6 +272,7 @@ int main(int argc, char *argv[])
             case 'h':
             {
                 Usage(untwister);
+                delete untwister;
                 return EXIT_SUCCESS;
             }
             case '?':
@@ -264,11 +284,13 @@ int main(int argc, char *argv[])
                 else
                    std::cerr << "Unknown option character `" << optopt << "'." << std::endl;
                 Usage(untwister);
+                delete untwister;
                 return EXIT_FAILURE;
             }
             default:
             {
                 Usage(untwister);
+                delete untwister;
                 return EXIT_FAILURE;
             }
         }
@@ -289,25 +311,17 @@ int main(int argc, char *argv[])
         {
             std::cout << results.at(index) << std::endl;
         }
-        return EXIT_SUCCESS;
-
     }
-
-    if (untwister->getObservedOutputs()->empty())
+    else if (untwister->getObservedOutputs()->empty())
     {
         Usage(untwister);
         std::cerr << WARN << "ERROR: No input numbers provided. Use -i <file> to provide a file" << std::endl;
-        return EXIT_FAILURE;
     }
-
-    if (untwister->inferState())
+    else if (!inferenceAttack(untwister) || bruteforce)
     {
-        return EXIT_SUCCESS;
+        bruteforceAttack(untwister, lowerBoundSeed, upperBoundSeed);
     }
-
-    FindSeed(untwister, lowerBoundSeed, upperBoundSeed);
     delete untwister;
-
     return EXIT_SUCCESS;
 }
 

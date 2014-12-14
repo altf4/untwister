@@ -7,6 +7,7 @@
 #ifndef TESTUNTWISTER_H_
 #define TESTUNTWISTER_H_
 
+#include <exception>
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include "../Untwister.h"

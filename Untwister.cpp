@@ -56,14 +56,14 @@ Untwister::~Untwister()
 std::vector<Seed> Untwister::bruteforce(uint32_t lowerBoundSeed, uint32_t upperBoundSeed)
 {
 
-    std::vector<uint32_t> labor = divisionOfLabor(upperBoundSeed - lowerBoundSeed);
+    std::vector<uint32_t> labor = m_divisionOfLabor(upperBoundSeed - lowerBoundSeed);
     uint32_t startAt = lowerBoundSeed;
 
     std::vector<std::thread> pool = std::vector<std::thread>(m_threads);
     for(unsigned int id = 0; id < m_threads; ++id)
     {
         uint32_t endAt = startAt + labor.at(id);
-        pool[id] = std::thread(&Untwister::worker, this, id, startAt, endAt);
+        pool[id] = std::thread(&Untwister::m_worker, this, id, startAt, endAt);
         startAt += labor.at(id);
     }
 
@@ -86,14 +86,14 @@ std::vector<Seed> Untwister::bruteforce(uint32_t lowerBoundSeed, uint32_t upperB
 
     if (!m_isCompleted->load(std::memory_order_relaxed))
     {
-        isCompleted->store(true, std::memory_order_relaxed);
+        m_isCompleted->store(true, std::memory_order_relaxed);
     }
 
     return results;
 }
 
 /* This method is execute as a seperate thread */
-void Untwister::worker(unsigned int id, uint32_t startingSeed, uint32_t endingSeed)
+void Untwister::m_worker(unsigned int id, uint32_t startingSeed, uint32_t endingSeed)
 {
 
     /* Each thread must have a local factory unless you like mutexes and/or segfaults */
@@ -133,6 +133,7 @@ void Untwister::worker(unsigned int id, uint32_t startingSeed, uint32_t endingSe
             Seed seed = Seed(seedIndex, confidence);
             m_answers->at(id)->push_back(seed);
         }
+
         if(matchesFound == m_observedOutputs->size())
         {
             m_isCompleted->store(true, std::memory_order_relaxed);
@@ -141,6 +142,10 @@ void Untwister::worker(unsigned int id, uint32_t startingSeed, uint32_t endingSe
     delete generator;
 }
 
+bool Untwister::canInferState()
+{
+    return getStateSize() <= m_observedOutputs->size() ? true:false;
+}
 
 /*
     This is the "smarter" method of breaking RNGs. We use consecutive integers
@@ -148,25 +153,23 @@ void Untwister::worker(unsigned int id, uint32_t startingSeed, uint32_t endingSe
     method, however, we won't typically recover an actual seed value.
     But the effect is the same.
 */
-bool Untwister::inferState()
+State Untwister::inferState()
 {
+    if (!canInferState())
+    {
+        throw std::runtime_error("Invalid state size, cannot infer state");
+    }
 
     PRNGFactory factory;
     PRNG *generator = factory.getInstance(m_prng);
     uint32_t stateSize = generator->getStateSize();
-
-    if(m_observedOutputs->size() <= stateSize)
-    {
-        std::cout << WARN << "Not enough observed values to perform state inference,"
-                  << " try again with more than " << stateSize << " values." << std::endl;
-        return false;
-    }
 
     double highscore = 0.0;
 
     /* Guaranteed from the above to loop at least one time */
     std::vector<double> scores;
     std::vector<uint32_t> best_state;
+
     for(uint32_t index = 0; index < (m_observedOutputs->size() - stateSize); ++index)
     {
         std::vector<uint32_t>::const_iterator first = m_observedOutputs->begin() + index;
@@ -224,18 +227,12 @@ bool Untwister::inferState()
             if(generator->reverseToSeed(&outSeed, 10000))
             {
                 /* We win! */
-                std::cout << SUCCESS << "Found seed " << outSeed << std::endl;
+                // std::cout << SUCCESS << "Found seed " << outSeed << std::endl;
             }
             else
             {
-                std::cout << SUCCESS << "Found state: " << std::endl;
                 std::vector<uint32_t> state = generator->getState();
-                for(uint32_t j = 0; j < state.size(); j++)
-                {
-                    std::cout << state[j] << std::endl;
-                }
             }
-            return true;
         }
 
         double score = (double)(matchesFound*100) / (double)(m_observedOutputs->size() - stateSize);
@@ -246,24 +243,13 @@ bool Untwister::inferState()
         }
     }
 
-    /* Analyze scores */
-    //TODO
-    if(highscore > 0)
-    {
-        std::cout << SUCCESS << "Best state guess, with confidence of: " << highscore << '%' << std::endl;
-        std::vector<uint32_t> state = generator->getState();
-        for(uint32_t j = 0; j < state.size(); j++)
-        {
-            std::cout << SUCCESS << state[j] << std::endl;
-        }
-    }
-    else
-    {
-        std::cout << INFO << "State Inference failed" << std::endl;
-    }
+    /* TODO: Analyze scores */
+    State finalState;
+    finalState.first = best_state;
+    finalState.second = highscore;
 
     delete generator;
-    return false;
+    return finalState;
 }
 
 std::vector<uint32_t> Untwister::generateSampleFromSeed(uint32_t seed)
@@ -307,7 +293,7 @@ std::vector<uint32_t> Untwister::generateSampleFromState()
 }
 
 /* Divide X work among Y number of threads, and evenly distribute remainders */
-std::vector<uint32_t> Untwister::divisionOfLabor(uint32_t sizeOfWork)
+std::vector<uint32_t> Untwister::m_divisionOfLabor(uint32_t sizeOfWork)
 {
     uint32_t work = sizeOfWork / m_threads;
     uint32_t leftover = sizeOfWork % m_threads;
@@ -342,7 +328,7 @@ std::vector<uint32_t>* Untwister::getStatus()
     return m_status;
 }
 
-std::vector<std::string> Untwister::getPRNGNames()
+std::vector<std::string> Untwister::getSupportedPRNGs()
 {
     PRNGFactory factory;
     return factory.getNames();
@@ -354,6 +340,10 @@ void Untwister::setPRNG(std::string prng)
     if (isSupportedPRNG(prng))
     {
         this->m_prng = prng;
+    }
+    else
+    {
+        throw std::runtime_error("Unsupported PRNG");
     }
 }
 
@@ -374,8 +364,17 @@ bool Untwister::isSupportedPRNG(char *prng)
 
 bool Untwister::isSupportedPRNG(std::string prng)
 {
-    std::vector<std::string> names = getPRNGNames();
+    std::vector<std::string> names = getSupportedPRNGs();
     return std::find(names.begin(), names.end(), prng) == names.end() ? false:true;
+}
+
+uint32_t Untwister::getStateSize()
+{
+    PRNGFactory factory;
+    PRNG *generator = factory.getInstance(m_prng);
+    uint32_t stateSize = generator->getStateSize();
+    delete generator;
+    return stateSize;
 }
 
 void Untwister::setThreads(unsigned int threads)

@@ -41,10 +41,10 @@ void PythonInit()
 }
 
 /* Find a seed */
-list FindSeed(std::string prng, list inputs, unsigned int threads, float minimumConfidence,
+list BruteforceAttack(std::string prng, list observations, unsigned int threads, float minimumConfidence,
     uint32_t lowerBoundSeed, uint32_t upperBoundSeed, uint32_t depth)
 {
-    Untwister *untwister = new Untwister(len(inputs));
+    Untwister *untwister = new Untwister(len(observations));
     if(!untwister->isSupportedPRNG(prng))
     {
         /* Raise Python Exception */
@@ -57,19 +57,15 @@ list FindSeed(std::string prng, list inputs, unsigned int threads, float minimum
     untwister->setMinConfidence(minimumConfidence);
 
     /* Convert Python list object to observedOutputs's std::vector<uint32_t> */
-    for(int index = 0; index < len(inputs); ++index)
+    for(int index = 0; index < len(observations); ++index)
     {
-        uint32_t data = extract<uint32_t>(inputs[index]);
+        uint32_t data = extract<uint32_t>(observations[index]);
         untwister->getObservedOutputs()->at(index) = data;
     }
 
     /* Suspend Python's thread, so we can use native C++ threads */
     PyThreadState *pyThreadState = PyEval_SaveThread();
-
     auto results = untwister->bruteforce(lowerBoundSeed, upperBoundSeed);
-
-
-    /* Clean up and restore Python thread state */
     PyEval_RestoreThread(pyThreadState);
 
     /* Covert answers to python list of tuples */
@@ -83,11 +79,50 @@ list FindSeed(std::string prng, list inputs, unsigned int threads, float minimum
     return pyResults;
 }
 
+
+tuple InferStateAttack(std::string prng, list observations, float minimumConfidence)
+{
+    Untwister *untwister = new Untwister(len(observations));
+    if(!untwister->isSupportedPRNG(prng))
+    {
+        /* Raise Python Exception */
+        PyErr_SetString(PyExc_ValueError, "Unsupported PRNG");
+        throw error_already_set();
+    }
+
+    untwister->setPRNG(prng);
+
+    if(untwister->getStateSize() < (uint32_t) len(observations))
+    {
+        PyErr_SetString(PyExc_ValueError, "Cannot infer state, too few observations");
+        throw error_already_set();
+    }
+
+    untwister->setMinConfidence(minimumConfidence);
+
+    /* Convert Python list object to observedOutputs's std::vector<uint32_t> */
+    for(int index = 0; index < len(observations); ++index)
+    {
+        uint32_t data = extract<uint32_t>(observations[index]);
+        untwister->getObservedOutputs()->at(index) = data;
+    }
+
+    auto state = untwister->inferState();
+    list pyState;
+    for(unsigned int index = 0; index < state.first.size(); ++index)
+    {
+        pyState.append(state.first[index]);
+    }
+    delete untwister;
+
+    return make_tuple(pyState, state.second);
+}
+
 /* List all supported PRNGs */
 list Prngs()
 {
     Untwister *untwister = new Untwister();
-    std::vector<std::string> names = untwister->getPRNGNames();
+    std::vector<std::string> names = untwister->getSupportedPRNGs();
 
     list pyPRNGs;
     for(unsigned int index = 0; index < names.size(); ++index)
@@ -113,13 +148,20 @@ BOOST_PYTHON_MODULE(untwister) {
     unsigned int threads = std::thread::hardware_concurrency();
     current.attr("THREADS") = threads;
 
-    def("get_prngs", Prngs, "\n Get a list of supported PRNGs");
+    def("get_supported_prngs", Prngs, "\n Get a list of supported PRNGs");
 
     def(
-        "find_seed",
-        FindSeed,
-        (arg("prng"), arg("inputs"), arg("threads") = threads, arg("confidence") = 100.0, \
+        "bruteforce",
+        BruteforceAttack,
+        (arg("prng"), arg("observations"), arg("threads") = threads, arg("confidence") = 100.0, \
             arg("lower") = 0, arg("upper") = UINT_MAX, arg("depth") = 1000),
+        "\nThis is the cracking module for a generic mersenne twister 19932"
+    );
+
+    def(
+        "infer_state",
+        InferStateAttack,
+        (arg("prng"), arg("observations"), arg("confidence") = 100.0),
         "\nThis is the cracking module for a generic mersenne twister 19932"
     );
 
