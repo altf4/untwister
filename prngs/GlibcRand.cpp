@@ -383,7 +383,6 @@ void GlibcRand::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t
     tune_repeatedIncrements();
 }
 
-
 /* GNU Glibc RAND Implementation */
 
 int GlibcRand::m_rand()
@@ -669,4 +668,3 @@ int GlibcRand::__random_r(struct random_data *buf, int32_t *result)
   return -1;
 */
 }
-

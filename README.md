@@ -22,7 +22,7 @@ Untwister - Recover PRNG seeds from observed values.
         an example.
     -d <depth>
         The depth (default 1000) to inspect for each seed value when brute forcing.
-        Choosing a higher depth value will make brute forcing take longer (linearly), 
+        Choosing a higher depth value will make brute forcing take longer (linearly),
         but is required for cases where the generator has been used many times already.
         Also controls how deep to generate random numbers given the -g option
     -r <rng_alg>
@@ -59,7 +59,7 @@ Python Bindings
 ### Ubuntu/Debian Linux
 
 ```
-sudo apt-get install python-dev libboost-python-dev
+sudo apt-get install python-dev libboost-python-dev libcppunit-dev
 make python
 ```
 
