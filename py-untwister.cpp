@@ -57,7 +57,7 @@ list FindSeed(std::string prng, list inputs, unsigned int threads, float minimum
     untwister->setMinConfidence(minimumConfidence);
 
     /* Convert Python list object to observedOutputs's std::vector<uint32_t> */
-    for(unsigned int index = 0; index < len(inputs); ++index)
+    for(int index = 0; index < len(inputs); ++index)
     {
         uint32_t data = extract<uint32_t>(inputs[index]);
         untwister->getObservedOutputs()->at(index) = data;
