@@ -3,7 +3,7 @@ CPPFLAGS = -std=gnu++11 -O3 -g3 -Wall -c -fmessage-length=0 -MMD -fPIC
 PYTHON = /usr/include/python2.7
 BOOST = /usr/include
 OBJS = ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/Mt19937.o ./prngs/Ruby.o ./prngs/PRNGFactory.o ./Untwister.o
-TEST_OBJS = ./tests/runner.o ./tests/TestMt19937.o ./tests/TestPRNGFactory.o ./tests/TestUntwister.o
+TEST_OBJS = ./tests/runner.o ./tests/TestRuby.o ./tests/TestMt19937.o ./tests/TestPRNGFactory.o ./tests/TestUntwister.o
 
 all: GlibcRand Mt19937 RubyRand LSBState PRNGFactory Untwister
 	# Make the cli binary
@@ -16,6 +16,7 @@ python: GlibcRand Mt19937 RubyRand LSBState PRNGFactory Untwister
 	g++ -std=c++11 -shared -fPIC -O3 $(OBJS) py-untwister.o -lboost_python -lpython2.7 -o untwister.so
 
 tests: GlibcRand Mt19937 RubyRand LSBState PRNGFactory Untwister
+	g++ $(CPPFLAGS) -MF"./tests/TestRuby.d" -MT"./tests/TestRuby.d" -o "./tests/TestRuby.o" "./tests/TestRuby.cpp"
 	g++ $(CPPFLAGS) -MF"./tests/TestMt19937.d" -MT"./tests/TestMt19937.d" -o "./tests/TestMt19937.o" "./tests/TestMt19937.cpp"
 	g++ $(CPPFLAGS) -MF"./tests/TestPRNGFactory.d" -MT"./tests/TestPRNGFactory.d" -o "./tests/TestPRNGFactory.o" "./tests/TestPRNGFactory.cpp"
 	g++ $(CPPFLAGS) -MF"./tests/TestUntwister.d" -MT"./tests/TestUntwister.d" -o "./tests/TestUntwister.o" "./tests/TestUntwister.cpp"

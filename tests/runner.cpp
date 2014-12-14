@@ -20,13 +20,17 @@
 
 #include "../ConsoleColors.h"
 #include "TestUntwister.h"
+#include "TestPRNGFactory.h"
 #include "TestMt19937.h"
+#include "TestRuby.h"
 
 bool executeAllTests()
 {
     CppUnit::TextUi::TestRunner runner;
-    runner.addTest(TestUntwister::suite());
     runner.addTest(TestMt19937::suite());
+    runner.addTest(TestRuby::suite());
+    runner.addTest(TestPRNGFactory::suite());
+    runner.addTest(TestUntwister::suite());
     return runner.run();
 }
 
