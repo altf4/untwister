@@ -75,7 +75,7 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
     {
         std::this_thread::sleep_for(milliseconds(100));
     }
-    std::cout.precision(6);
+    std::cout.precision(2);
     double percent = 0.0;
     double seedsPerSec = 0.0;
     uint32_t timeLeft = 0.0;
