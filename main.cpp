@@ -75,10 +75,15 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
     {
         std::this_thread::sleep_for(milliseconds(100));
     }
-
+    std::cout.precision(6);
     double percent = 0.0;
     double seedsPerSec = 0.0;
-    double timeLeft = 0.0;
+    uint32_t timeLeft = 0.0;
+    int secondsLeft = 0;
+    int minutesLeft = 0;
+    int hoursLeft = 0;
+    int daysLeft = 0;
+    int yearsLeft = 0;
     steady_clock::time_point started = steady_clock::now();
     std::vector<uint32_t> *status = untwister->getStatus();
     std::atomic<bool> *isCompleted = untwister->getIsCompleted();
@@ -98,15 +103,36 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
             seedsPerSec = (double) sum / (double) time_span.count();
             if (0 == count % 20)
             {
-                timeLeft = ((double) (totalWork - sum) / seedsPerSec) / 60.0;
+                timeLeft = ((totalWork - sum) / seedsPerSec);
+                secondsLeft = timeLeft % 60;
+                minutesLeft = (timeLeft / 60) % 60;
+                hoursLeft = (timeLeft / 3600) % 24;
+                daysLeft = (timeLeft / 86400) % 365;
+                yearsLeft = (timeLeft / 31536000);
             }
         }
 
         std::cout << CLEAR << BOLD << PURPLE << "[" << spinner[count % 4] << "]" << RESET
-                  << " Progress: " << percent << '%'
+                  << " Progress: " << std::fixed<< percent << '%'
                   << "  [" << sum << " / " << totalWork << "]"
                   << "  ~" << seedsPerSec << "/sec"
-                  << "  " << timeLeft << " minute(s)";
+                  << "  " << secondsLeft << " seconds";
+        if(minutesLeft > 0)
+        {
+            std::cout << " " << minutesLeft << " minutes";
+        }
+        if(hoursLeft > 0)
+        {
+            std::cout << " " << hoursLeft << " hours";
+        }
+        if(daysLeft > 0)
+        {
+            std::cout << " " << daysLeft << " days";
+        }
+        if(yearsLeft > 0)
+        {
+            std::cout << " " << yearsLeft << " years";
+        }
         std::cout.flush();
         ++count;
         std::this_thread::sleep_for(milliseconds(100));
@@ -324,4 +350,3 @@ int main(int argc, char *argv[])
     delete untwister;
     return EXIT_SUCCESS;
 }
-
