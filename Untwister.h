@@ -78,8 +78,9 @@ private:
     double m_minConfidence;
     uint32_t m_depth;
     std::string m_prng;
-    std::atomic<bool> *m_isCompleted;
+    std::atomic<bool> *m_isStarting;
     std::atomic<bool> *m_isRunning;
+    std::atomic<bool> *m_isCompleted;
     std::vector<uint32_t> *m_status;
     std::vector<std::vector<Seed>* > *m_answers;
     std::vector<uint32_t> *m_observedOutputs;

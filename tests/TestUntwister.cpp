@@ -94,7 +94,6 @@ void TestUntwister::setPRNGTest()
     Untwister *untwister = new Untwister();
     untwister->setPRNG(std::string("mt19937"));
     CPPUNIT_ASSERT(untwister->getPRNG() == "mt19937");
-
     CPPUNIT_ASSERT_THROW(untwister->setPRNG(std::string("foobar")), std::runtime_error);
     delete untwister;
 }
@@ -107,16 +106,24 @@ void TestUntwister::mtBruteforceTest()
         untwister->addObservedOutput(m_mtTestInputs->at(index));
     }
     CPPUNIT_ASSERT(0 < untwister->getObservedOutputs()->size());
-
     untwister->setPRNG(std::string("mt19937"));
-    auto results = untwister->bruteforce(0, 50000);
 
-    CPPUNIT_ASSERT(0 < results.size());
-    if (0 < results.size())
+    for (unsigned int index = 0; index < TEST_COUNT; ++index)
     {
-        CPPUNIT_ASSERT(results[0].first == 31337);
-        CPPUNIT_ASSERT(results[0].second == 100.0);
+        uint32_t start = 100 * TEST_COUNT;
+        auto results = untwister->bruteforce(start, 50000);
+
+        CPPUNIT_ASSERT(0 < results.size());
+        if (0 < results.size())
+        {
+            CPPUNIT_ASSERT(results[0].first == 31337);
+            CPPUNIT_ASSERT(results[0].second == 100.0);
+        }
     }
+
+    auto results2 = untwister->bruteforce(50000, 100000);
+    CPPUNIT_ASSERT(0 == results2.size());
+
     delete untwister;
 }
 
@@ -128,17 +135,24 @@ void TestUntwister::glibcBruteforceTest()
         untwister->addObservedOutput(m_glibcTestInputs->at(index));
     }
     CPPUNIT_ASSERT(0 < untwister->getObservedOutputs()->size());
-
     untwister->setPRNG(std::string("glibc-rand"));
-    untwister->setThreads(1);
-    auto results = untwister->bruteforce(0, 50000);
 
-    CPPUNIT_ASSERT(0 < results.size());
-    if (0 < results.size())
+    for (unsigned int index = 0; index < TEST_COUNT; ++index)
     {
-        CPPUNIT_ASSERT(results[0].first == 1337);
-        CPPUNIT_ASSERT(results[0].second == 100.0);
+        uint32_t start = 100 * TEST_COUNT;
+        auto results = untwister->bruteforce(start, 50000);
+
+        CPPUNIT_ASSERT(0 < results.size());
+        if (0 < results.size())
+        {
+            CPPUNIT_ASSERT(results[0].first == 1337);
+            CPPUNIT_ASSERT(results[0].second == 100.0);
+        }
     }
+
+    auto results2 = untwister->bruteforce(50000, 100000);
+    CPPUNIT_ASSERT(0 == results2.size());
+
     delete untwister;
 }
 
@@ -150,15 +164,22 @@ void TestUntwister::rubyBruteforceTest()
         untwister->addObservedOutput(m_rubyTestInputs->at(index));
     }
     CPPUNIT_ASSERT(0 < untwister->getObservedOutputs()->size());
-
     untwister->setPRNG(std::string("ruby-rand"));
-    auto results = untwister->bruteforce(0, 50000);
 
-    CPPUNIT_ASSERT(0 < results.size());
-    if (0 < results.size())
+    for (unsigned int index = 0; index < TEST_COUNT; ++index)
     {
-        CPPUNIT_ASSERT(results[0].first == 31337);
-        CPPUNIT_ASSERT(results[0].second == 100.0);
+        uint32_t start = 100 * TEST_COUNT;
+        auto results = untwister->bruteforce(start, 50000);
+
+        CPPUNIT_ASSERT(0 < results.size());
+        if (0 < results.size())
+        {
+            CPPUNIT_ASSERT(results[0].first == 31337);
+            CPPUNIT_ASSERT(results[0].second == 100.0);
+        }
     }
+
+    auto results2 = untwister->bruteforce(50000, 100000);
+    CPPUNIT_ASSERT(0 == results2.size());
     delete untwister;
 }

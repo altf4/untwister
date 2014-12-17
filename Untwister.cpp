@@ -22,6 +22,7 @@ Untwister::Untwister()
 {
     m_isCompleted = new std::atomic<bool>(false);
     m_isRunning = new std::atomic<bool>(false);
+    m_isStarting = new std::atomic<bool>(false);
     m_observedOutputs = new std::vector<uint32_t>;
     m_depth = DEFAULT_DEPTH;
     m_minConfidence = DEFAULT_MIN_CONFIDENCE;
@@ -35,6 +36,7 @@ Untwister::Untwister(unsigned int observationSize)
 {
     m_isCompleted = new std::atomic<bool>(false);
     m_isRunning = new std::atomic<bool>(false);
+    m_isStarting = new std::atomic<bool>(false);
     m_observedOutputs = new std::vector<uint32_t>(observationSize);
     m_depth = DEFAULT_DEPTH;
     m_minConfidence = DEFAULT_MIN_CONFIDENCE;
@@ -53,14 +55,28 @@ Untwister::~Untwister()
     delete m_status;
 }
 
+/*
+ isStarting: The call to bruteforce() has occured but all workers threads have not started yet
+  isRunning: All threads have started and it is safe to call getStatus() externally
+isCompleted: The operation has completed and all worker threads have joined
+*/
 std::vector<Seed> Untwister::bruteforce(uint32_t lowerBoundSeed, uint32_t upperBoundSeed)
 {
+    if (m_isRunning->load(std::memory_order_relaxed) || m_isStarting->exchange(true))
+    {
+        throw std::runtime_error("Bruteforce is already in progress");
+    }
+
+    if (m_isCompleted->load(std::memory_order_relaxed))
+    {
+        m_isCompleted->store(false, std::memory_order_relaxed);
+    }
 
     std::vector<uint32_t> labor = m_divisionOfLabor(upperBoundSeed - lowerBoundSeed);
     uint32_t startAt = lowerBoundSeed;
-
     std::vector<std::thread> pool = std::vector<std::thread>(m_threads);
-    for(unsigned int id = 0; id < m_threads; ++id)
+
+    for (unsigned int id = 0; id < m_threads; ++id)
     {
         uint32_t endAt = startAt + labor.at(id);
         pool[id] = std::thread(&Untwister::m_worker, this, id, startAt, endAt);
@@ -68,10 +84,16 @@ std::vector<Seed> Untwister::bruteforce(uint32_t lowerBoundSeed, uint32_t upperB
     }
 
     m_isRunning->store(true, std::memory_order_relaxed);
+    m_isStarting->store(false, std::memory_order_relaxed);
 
-    for(unsigned int id = 0; id < pool.size(); ++id)
+    for (unsigned int id = 0; id < pool.size(); ++id)
     {
         pool[id].join();
+    }
+
+    if (!m_isCompleted->load(std::memory_order_relaxed))
+    {
+        m_isCompleted->store(true, std::memory_order_relaxed);
     }
 
     std::vector<Seed> results = std::vector<Seed>();
@@ -83,12 +105,7 @@ std::vector<Seed> Untwister::bruteforce(uint32_t lowerBoundSeed, uint32_t upperB
         }
         delete m_answers->at(id);
     }
-
-    if (!m_isCompleted->load(std::memory_order_relaxed))
-    {
-        m_isCompleted->store(true, std::memory_order_relaxed);
-    }
-
+    m_isRunning->store(false, std::memory_order_relaxed);
     return results;
 }
 
@@ -100,6 +117,7 @@ void Untwister::m_worker(unsigned int id, uint32_t startingSeed, uint32_t ending
     PRNGFactory factory;
     PRNG *generator = factory.getInstance(m_prng);
     m_answers->at(id) = new std::vector<Seed>();
+    m_status->at(id) = 0;
 
     for(uint32_t seedIndex = startingSeed; seedIndex <= endingSeed; ++seedIndex)
     {
@@ -325,7 +343,11 @@ std::vector<uint32_t>* Untwister::getObservedOutputs()
 
 std::vector<uint32_t>* Untwister::getStatus()
 {
-    return m_status;
+    if (m_isRunning->load(std::memory_order_relaxed))
+    {
+        return m_status;
+    }
+    throw std::runtime_error("Bruteforce is not running, no status");
 }
 
 std::vector<std::string> Untwister::getSupportedPRNGs()

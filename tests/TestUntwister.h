@@ -7,10 +7,14 @@
 #ifndef TESTUNTWISTER_H_
 #define TESTUNTWISTER_H_
 
+#include <thread>
 #include <exception>
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include "../Untwister.h"
+
+static const unsigned int TEST_COUNT = 10;
+
 
 class TestUntwister: public CPPUNIT_NS::TestFixture
 {

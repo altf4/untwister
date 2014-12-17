@@ -73,7 +73,7 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
     std::atomic<bool>* isRunning = untwister->getIsRunning();
     while (!isRunning->load(std::memory_order_relaxed))
     {
-        std::this_thread::sleep_for(milliseconds(100));
+        std::this_thread::sleep_for(milliseconds(10));
     }
     std::cout.precision(2);
     double percent = 0.0;
@@ -108,7 +108,7 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
                 minutesLeft = (timeLeft / 60) % 60;
                 hoursLeft = (timeLeft / 3600) % 24;
                 daysLeft = (timeLeft / 86400) % 365;
-                yearsLeft = (timeLeft / 31536000);
+                yearsLeft = (timeLeft / ONE_YEAR);
             }
         }
 

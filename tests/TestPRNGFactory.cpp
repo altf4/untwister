@@ -34,6 +34,7 @@ void TestPRNGFactory::getNamesTest()
 void TestPRNGFactory::getInstanceTest()
 {
     PRNGFactory *factory = new PRNGFactory();
+
     PRNG *mt = factory->getInstance("mt19937");
     CPPUNIT_ASSERT(mt->getName() == "mt19937");
     mt->seed(31337);
@@ -41,6 +42,23 @@ void TestPRNGFactory::getInstanceTest()
     CPPUNIT_ASSERT(mt->random() == 3480951327);
     CPPUNIT_ASSERT(mt->random() == 4150831638);
     delete mt;
+
+    PRNG *ruby = factory->getInstance("ruby-rand");
+    CPPUNIT_ASSERT(ruby->getName() == "ruby-rand");
+    ruby->seed(31337);
+    CPPUNIT_ASSERT(ruby->random() == 3100331191);
+    CPPUNIT_ASSERT(ruby->random() == 3480951327);
+    CPPUNIT_ASSERT(ruby->random() == 4150831638);
+    delete ruby;
+
+    PRNG *glibc = factory->getInstance("glibc-rand");
+    CPPUNIT_ASSERT(glibc->getName() == "glibc-rand");
+    glibc->seed(31337);
+    CPPUNIT_ASSERT(glibc->random() == 53418360);
+    CPPUNIT_ASSERT(glibc->random() == 66988840);
+    CPPUNIT_ASSERT(glibc->random() == 1189565692);
+    delete glibc;
+
     delete factory;
 }
 

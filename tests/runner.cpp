@@ -36,12 +36,9 @@ bool executeAllTests()
 
 int main(int argc, char *argv[])
 {
-    std::cout << INFO << "Executing all unit tests, please wait..." << std::endl;
-    if (executeAllTests())
-    {
-        std::cout << INFO << "All tests executed successfully!" << std::endl;
-    }
-    else
+    std::cout << INFO << "Executing all unit tests, please wait...";
+    std::cout.flush();
+    if (!executeAllTests())
     {
         std::cout << WARN << "One or more tests failed!" << std::endl;
     }
