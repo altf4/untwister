@@ -115,24 +115,24 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
         std::cout << CLEAR << BOLD << PURPLE << "[" << spinner[count % 4] << "]" << RESET
                   << " Progress: " << std::fixed<< percent << '%'
                   << "  [" << sum << " / " << totalWork << "]"
-                  << "  ~" << seedsPerSec << "/sec"
-                  << "  " << secondsLeft << " seconds";
-        if(minutesLeft > 0)
+                  << "  ~" << seedsPerSec << "/sec ";
+        if(yearsLeft > 0)
         {
-            std::cout << " " << minutesLeft << " minutes";
-        }
-        if(hoursLeft > 0)
-        {
-            std::cout << " " << hoursLeft << " hours";
+            std::cout << " " << yearsLeft << " years";
         }
         if(daysLeft > 0)
         {
             std::cout << " " << daysLeft << " days";
         }
-        if(yearsLeft > 0)
+        if(hoursLeft > 0)
         {
-            std::cout << " " << yearsLeft << " years";
+            std::cout << " " << hoursLeft << " hours";
         }
+        if(minutesLeft > 0)
+        {
+            std::cout << " " << minutesLeft << " minutes";
+        }
+        std::cout << " " << secondsLeft << " seconds";
         std::cout.flush();
         ++count;
         std::this_thread::sleep_for(milliseconds(100));
