@@ -33,10 +33,15 @@ Untwister - Recover PRNG seeds from observed values.
     -u
         Use bruteforce, but only for unix timestamp values within a range of +/- 1
         year from the current time.
+    -b
+        Always bruteforce, even if state inference attack is successful
     -g <seed>
-        Generate a test set of random numbers from the given seed (at a random depth)
+        Generate a test set of random numbers from the given seed (default is random seed)
+    -D
+        The quantity of random numbers to generate when using the -g flag (default 20)
+    -c <confidence>
+        Set the minimum confidence percentage to report
     -t <threads>
-
         Spawn this many threads (default is your number of CPUs)
 
 Examples:
