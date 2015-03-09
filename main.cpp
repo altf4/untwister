@@ -61,7 +61,7 @@ void Usage(Untwister *untwister)
     std::cout << "\t-u\n\t\tUse bruteforce, but only for unix timestamp values within a range of +/- 1 " << std::endl;
     std::cout << "\t\tyear from the current time." << std::endl;
     std::cout << "\t-b\n\t\tAlways bruteforce, even if state inference attack is successful" << std::endl;
-    std::cout << "\t-g <seed>\n\t\tGenerate a test set of random numbers from the given seed (default is random seed)"  << std::endl;
+    std::cout << "\t-g <seed>\n\t\tGenerate a test set of random numbers from the given seed"  << std::endl;
     std::cout << "\t-D <depth>\n\t\tThe quantity of random numbers to generate when using the -g flag (default 20)" << std::endl;
     std::cout << "\t-c <confidence>\n\t\tSet the minimum confidence percentage to report" << std::endl;
     std::cout << "\t-t <threads>\n\t\tSpawn this many threads (default is " << untwister->getThreads() << ")" << std::endl;
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
     uint32_t lowerBoundSeed = 0;
     uint32_t upperBoundSeed = UINT_MAX;
     uint32_t seed = 0;
-    uint32_t generationDepth = 0;
+    uint32_t generationDepth = 20;
     bool generateFlag = false;
     bool bruteforce = false;
     Untwister *untwister = new Untwister();
@@ -210,7 +210,10 @@ int main(int argc, char *argv[])
         {
             case 'g':
             {
-                seed = strtoul(optarg, NULL, 10);
+                if(optarg != NULL)
+                {
+                    seed = strtoul(optarg, NULL, 10);
+                }
                 generateFlag = true;
                 break;
             }
@@ -332,18 +335,7 @@ int main(int argc, char *argv[])
     if (generateFlag)
     {
         std::vector<uint32_t> results;
-        if(untwister->getObservedOutputs()->empty())
-        {
-            results = untwister->generateSampleFromSeed(generationDepth, seed);
-        }
-        else
-        {
-            results = untwister->generateSampleFromState(generationDepth);
-        }
-        for (unsigned int index = 0; index < results.size(); ++index)
-        {
-            std::cout << results.at(index) << std::endl;
-        }
+        untwister->generateSampleFromSeed(generationDepth, seed);
     }
     else if (untwister->getObservedOutputs()->empty())
     {

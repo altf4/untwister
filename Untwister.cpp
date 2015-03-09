@@ -16,7 +16,7 @@
 */
 
 #include "Untwister.h"
-
+#include <iostream>
 
 Untwister::Untwister()
 {
@@ -53,6 +53,7 @@ Untwister::~Untwister()
     delete m_observedOutputs;
     delete m_answers;
     delete m_status;
+    delete m_isStarting;
 }
 
 /*
@@ -270,44 +271,17 @@ State Untwister::inferState()
     return finalState;
 }
 
-std::vector<uint32_t> Untwister::generateSampleFromSeed(uint32_t seed)
+void Untwister::generateSampleFromSeed(uint32_t depth, uint32_t seed)
 {
     PRNGFactory factory;
     PRNG *generator = factory.getInstance(m_prng);
     generator->seed(seed);
-    PRNG *distance_gen = factory.getInstance(m_prng);
-    distance_gen->seed(time(NULL));
-    uint32_t distance = distance_gen->random() % (m_depth - 10);
 
-    // Burn a bunch of random numbers
-    for (uint32_t index = 0; index < distance; ++index)
+    for (unsigned int index = 0; index < depth; ++index)
     {
-        generator->random();
-    }
-
-    std::vector<uint32_t> results(10);
-    for (unsigned int index = 0; index < 10; ++index)
-    {
-        results.push_back(generator->random());
+        std::cout << generator->random() << std::endl;
     }
     delete generator;
-    delete distance_gen;
-    return results;
-}
-
-std::vector<uint32_t> Untwister::generateSampleFromState()
-{
-    PRNGFactory factory;
-    PRNG *generator = factory.getInstance(m_prng);
-    generator->setState((*m_observedOutputs));
-
-    std::vector<uint32_t> results(m_depth);
-    for (unsigned int index = 0; index < m_depth; ++index)
-    {
-        results.push_back(generator->random());
-    }
-    delete generator;
-    return results;
 }
 
 /* Divide X work among Y number of threads, and evenly distribute remainders */

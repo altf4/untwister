@@ -70,8 +70,7 @@ public:
     std::atomic<bool>* getIsCompleted();
     std::atomic<bool>* getIsRunning();
 
-    std::vector<uint32_t> generateSampleFromSeed(uint32_t seed);
-    std::vector<uint32_t> generateSampleFromState();
+void generateSampleFromSeed(uint32_t depth, uint32_t seed);
 
 private:
     unsigned int m_threads;

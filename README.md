@@ -36,7 +36,7 @@ Untwister - Recover PRNG seeds from observed values.
     -b
         Always bruteforce, even if state inference attack is successful
     -g <seed>
-        Generate a test set of random numbers from the given seed (default is random seed)
+        Generate a test set of random numbers from the given seed
     -D
         The quantity of random numbers to generate when using the -g flag (default 20)
     -c <confidence>
