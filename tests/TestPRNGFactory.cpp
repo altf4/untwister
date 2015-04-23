@@ -43,6 +43,14 @@ void TestPRNGFactory::getInstanceTest()
     CPPUNIT_ASSERT(mt->random() == 4150831638);
     delete mt;
 
+    PRNG *php_mt = factory->getInstance("php-mt_rand");
+    CPPUNIT_ASSERT(php_mt->getName() == "php-mt_rand");
+    php_mt->seed(31337);
+    CPPUNIT_ASSERT(php_mt->random() == 590238509);
+    CPPUNIT_ASSERT(php_mt->random() == 418805881);
+    CPPUNIT_ASSERT(php_mt->random() == 83861629);
+    delete php_mt;
+
     PRNG *ruby = factory->getInstance("ruby-rand");
     CPPUNIT_ASSERT(ruby->getName() == "ruby-rand");
     ruby->seed(31337);
@@ -61,4 +69,3 @@ void TestPRNGFactory::getInstanceTest()
 
     delete factory;
 }
-

@@ -23,11 +23,13 @@
 #include "TestPRNGFactory.h"
 #include "TestMt19937.h"
 #include "TestRuby.h"
+#include "Test_PHP_mt19937.h"
 
 bool executeAllTests()
 {
     CppUnit::TextUi::TestRunner runner;
     runner.addTest(TestMt19937::suite());
+    runner.addTest(Test_PHP_Mt19937::suite());
     runner.addTest(TestRuby::suite());
     runner.addTest(TestPRNGFactory::suite());
     runner.addTest(TestUntwister::suite());
