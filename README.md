@@ -8,6 +8,7 @@ Supported PRNGs
 =================
 * Glibc's rand()
 * Mersenne Twister (MT19937)
+* PHP's MT-variant (php_mt_rand)
 * Ruby's MT-variant DEFAULT::rand()
 
 Usage
@@ -29,6 +30,7 @@ Untwister - Recover PRNG seeds from observed values.
         The RNG algorithm to use. Supported RNG algorithms:
         glibc-rand (default)
         mt19937
+        php-mt_rand
         ruby-rand
     -u
         Use bruteforce, but only for unix timestamp values within a range of +/- 1
