@@ -17,6 +17,7 @@
 
 #include "Untwister.h"
 #include <iostream>
+#include <stdexcept>
 
 Untwister::Untwister()
 {
