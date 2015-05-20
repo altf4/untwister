@@ -5,6 +5,7 @@
  */
 
 #include "TestUntwister.h"
+#include <stdexcept>
 
 void TestUntwister::setUp()
 {
