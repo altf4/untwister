@@ -289,6 +289,11 @@ int main(int argc, char *argv[])
                 std::string line;
                 while (std::getline(infile, line))
                 {
+                    /* Ignore lines that start with '#' */
+                    if(line.at(0) =='#')
+                    {
+                        continue;
+                    }
                     uint32_t value = strtoul(line.c_str(), NULL, 0);
                     untwister->addObservedOutput(value);
                 }
