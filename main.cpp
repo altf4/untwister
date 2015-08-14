@@ -65,8 +65,8 @@ void Usage(Untwister *untwister)
     std::cout << "\t-D <depth>\n\t\tThe quantity of random numbers to generate when using the -g flag (default 20)" << std::endl;
     std::cout << "\t-c <confidence>\n\t\tSet the minimum confidence percentage to report" << std::endl;
     std::cout << "\t-t <threads>\n\t\tSpawn this many threads (default is " << untwister->getThreads() << ")" << std::endl;
-    std::cout << "\t-m <min bound>\n\t\tSet the minimum bound, for a bounded PRNG function" << std::endl;
-    std::cout << "\t-M <max bound>\n\t\tSet the maximum bound, for a bounded PRNG function" << std::endl;
+    std::cout << "\t-m <min bound>\n\t\tSet the minimum bound (inclusive), for a bounded PRNG function" << std::endl;
+    std::cout << "\t-M <max bound>\n\t\tSet the maximum bound (inclusive), for a bounded PRNG function" << std::endl;
     std::cout << std::endl;
 }
 

@@ -46,9 +46,9 @@ Untwister - Recover PRNG seeds from observed values.
     -t <threads>
         Spawn this many threads (default is your number of CPUs)
     -m <min bound>
-        Set the minimum bound, for a bounded PRNG function
+        Set the minimum bound (inclusive), for a bounded PRNG function
     -M <max bound>
-        Set the maximum bound, for a bounded PRNG function
+        Set the maximum bound (inclusive), for a bounded PRNG function
 
 Examples:
     Cracking a list of random numbers in test_ints.txt
