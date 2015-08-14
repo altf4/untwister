@@ -69,6 +69,8 @@ public:
     std::vector<uint32_t>* getStatus();
     std::atomic<bool>* getIsCompleted();
     std::atomic<bool>* getIsRunning();
+    void setBounds(uint32_t, uint32_t);
+    bool isBounded();
 
 void generateSampleFromSeed(uint32_t depth, uint32_t seed);
 
@@ -83,6 +85,10 @@ private:
     std::vector<uint32_t> *m_status;
     std::vector<std::vector<Seed>* > *m_answers;
     std::vector<uint32_t> *m_observedOutputs;
+
+    std::atomic<bool> *m_isBounded;
+    uint32_t m_minBound;
+    uint32_t m_maxBound;
 
     void m_worker(unsigned int id, uint32_t startingSeed, uint32_t endingSeed);
     std::vector<uint32_t> m_divisionOfLabor(uint32_t sizeOfWork);

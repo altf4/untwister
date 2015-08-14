@@ -42,5 +42,17 @@ void TestRuby::randomTest()
     CPPUNIT_ASSERT(ruby->random() == 3100331191);
     CPPUNIT_ASSERT(ruby->random() == 3480951327);
     CPPUNIT_ASSERT(ruby->random() == 4150831638);
+
+    /* Bounded Ruby rand(int, int) calls */
+    ruby->setBounds(1234, 9876);
+    ruby->seed(6789);
+    CPPUNIT_ASSERT(ruby->random() == 4081);
+    CPPUNIT_ASSERT(ruby->random() == 2200);
+    CPPUNIT_ASSERT(ruby->random() == 8047);
+    ruby->setBounds(1234, 9876);
+    ruby->seed(6789);
+    CPPUNIT_ASSERT(ruby->random() == 4081);
+    CPPUNIT_ASSERT(ruby->random() == 2200);
+    CPPUNIT_ASSERT(ruby->random() == 8047);
     delete ruby;
 }

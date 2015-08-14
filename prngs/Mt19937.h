@@ -36,6 +36,7 @@ public:
     void tune(std::vector<uint32_t>, std::vector<uint32_t>);
 
     bool reverseToSeed(uint32_t *, uint32_t);
+    void setBounds(uint32_t, uint32_t);
 
 private:
     uint32_t seedValue;

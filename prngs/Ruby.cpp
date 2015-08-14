@@ -6,15 +6,18 @@
  */
 
 #include "Ruby.h"
+#include "../ConsoleColors.h"
+#include <iostream>
 
 Ruby::Ruby()
 {
+    m_isBounded = false;
     seedValue = 0;
     m_mt = new MT;
     init_genrand(m_mt, seedValue);
 }
 
-Ruby::~Ruby() 
+Ruby::~Ruby()
 {
     delete m_mt;
     m_mt = NULL;
@@ -40,9 +43,28 @@ uint32_t Ruby::getSeed()
 
 uint32_t Ruby::random()
 {
-    return genrand_int32(m_mt);
-}
+    if(m_isBounded)
+    {
+        /* generate a number between 0 and (max-min), then scale it back up */
+        uint32_t limit = m_maxBound - m_minBound;
 
+        /* Ruby does an algorithm of retries within a power of two bound */
+        uint32_t mask = make_mask(limit);
+        while(true)
+        {
+            uint32_t val = genrand_int32(m_mt);
+            val &= mask;
+            if(val < limit)
+            {
+                return val + m_minBound;
+            }
+        }
+    }
+    else
+    {
+        return genrand_int32(m_mt);
+    }
+}
 
 void Ruby::init_genrand(struct MT* mt, unsigned int s)
 {
@@ -139,3 +161,19 @@ void Ruby::setEvidence(std::vector<uint32_t>)
 
 }
 
+uint32_t Ruby::make_mask(uint32_t x)
+{
+    x = x | x >> 1;
+    x = x | x >> 2;
+    x = x | x >> 4;
+    x = x | x >> 8;
+    x = x | x >> 16;
+    return x;
+}
+
+void Ruby::setBounds(uint32_t min, uint32_t max)
+{
+    m_minBound = min;
+    m_maxBound = max;
+    m_isBounded = true;
+}

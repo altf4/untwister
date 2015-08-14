@@ -36,11 +36,13 @@ public:
     void tune(std::vector<uint32_t>, std::vector<uint32_t>);
 
     bool reverseToSeed(uint32_t *, uint32_t);
+    void setBounds(uint32_t, uint32_t);
 
 private:
     void init_genrand(struct MT *mt, unsigned int s);
     void next_state(struct MT *mt);
     uint32_t genrand_int32(struct MT *mt);
+    uint32_t make_mask(uint32_t x);
 
     MT *m_mt;
     uint32_t seedValue;

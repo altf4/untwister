@@ -16,7 +16,7 @@
 */
 
 #include "GlibcRand.h"
-
+#include "../ConsoleColors.h"
 
 GlibcRand::GlibcRand()
 {
@@ -438,4 +438,9 @@ void GlibcRand::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t
 {
     tune_chainChecking();
     tune_repeatedIncrements();
+}
+
+void GlibcRand::setBounds(uint32_t min, uint32_t max)
+{
+    //Setting bounds is unsupported in gblibc, so do nothing here. In fact, this should not get called.
 }

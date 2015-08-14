@@ -65,6 +65,8 @@ void Usage(Untwister *untwister)
     std::cout << "\t-D <depth>\n\t\tThe quantity of random numbers to generate when using the -g flag (default 20)" << std::endl;
     std::cout << "\t-c <confidence>\n\t\tSet the minimum confidence percentage to report" << std::endl;
     std::cout << "\t-t <threads>\n\t\tSpawn this many threads (default is " << untwister->getThreads() << ")" << std::endl;
+    std::cout << "\t-m <min bound>\n\t\tSet the minimum bound, for a bounded PRNG function" << std::endl;
+    std::cout << "\t-M <max bound>\n\t\tSet the maximum bound, for a bounded PRNG function" << std::endl;
     std::cout << std::endl;
 }
 
@@ -200,14 +202,30 @@ int main(int argc, char *argv[])
     uint32_t upperBoundSeed = UINT_MAX;
     uint32_t seed = 0;
     uint32_t generationDepth = 20;
+    uint32_t min_bound = 0;
+    uint32_t max_bound = -1;
+    bool boundedMinFlag = false;
+    bool boundedMaxFlag = false;
     bool generateFlag = false;
     bool bruteforce = false;
     Untwister *untwister = new Untwister();
 
-    while ((c = getopt(argc, argv, "D:d:i:g:t:r:c:ubh")) != -1)
+    while ((c = getopt(argc, argv, "m:M:D:d:i:g:t:r:c:ubh")) != -1)
     {
         switch (c)
         {
+            case 'm':
+            {
+                min_bound = strtoul(optarg, NULL, 10);
+                boundedMinFlag = true;
+                break;
+            }
+            case 'M':
+            {
+                max_bound = strtoul(optarg, NULL, 10);
+                boundedMaxFlag = true;
+                break;
+            }
             case 'g':
             {
                 if(optarg != NULL)
@@ -331,21 +349,61 @@ int main(int argc, char *argv[])
             }
         }
     }
-
+    /* You can't just set one bound flag */
+    if (boundedMaxFlag ^ boundedMinFlag)
+    {
+        Usage(untwister);
+        std::cerr << WARN << "ERROR: If you want to have a bounded range, provide both -m min and -M max" << std::endl;
+        delete untwister;
+        return EXIT_SUCCESS;
+    }
+    /* Set the bounds, if there any any */
+    if (boundedMaxFlag && boundedMinFlag)
+    {
+        if(max_bound <= min_bound)
+        {
+            Usage(untwister);
+            std::cerr << WARN << "ERROR: Min bound (-m) must be less than max bound (-M)" << std::endl;
+            delete untwister;
+            return EXIT_SUCCESS;
+        }
+        try
+        {
+            untwister->setBounds(min_bound, max_bound);
+        }
+        catch(const std::string& ex)
+        {
+            std::cerr << WARN << "ERROR: " << ex << std::endl;
+            delete untwister;
+            return EXIT_SUCCESS;
+        }
+    }
+    /* If we're generating numbers instead of cracking a seed, then let's do that. */
     if (generateFlag)
     {
         std::vector<uint32_t> results;
         untwister->generateSampleFromSeed(generationDepth, seed);
+        delete untwister;
+        return EXIT_SUCCESS;
     }
-    else if (untwister->getObservedOutputs()->empty())
+    /* Check input file for contents */
+    if (untwister->getObservedOutputs()->empty())
     {
         Usage(untwister);
         std::cerr << WARN << "ERROR: No input numbers provided. Use -i <file> to provide a file" << std::endl;
+        delete untwister;
+        return EXIT_SUCCESS;
     }
-    else if (!inferenceAttack(untwister) || bruteforce)
+    /* Perform inference attack. Skip it if we're bounded or it was manually skipped */
+    if ((boundedMaxFlag && boundedMinFlag) || bruteforce)
     {
-        bruteforceAttack(untwister, lowerBoundSeed, upperBoundSeed);
+        std::cout << INFO << "Skipping inference attack..." << std::endl;
     }
+    else
+    {
+        inferenceAttack(untwister);
+    }
+    bruteforceAttack(untwister, lowerBoundSeed, upperBoundSeed);
     delete untwister;
     return EXIT_SUCCESS;
 }

@@ -27,6 +27,7 @@ public:
     void seed(uint32_t value);
     uint32_t getSeed(void);
     uint32_t random(void);
+    void setBounds(uint32_t, uint32_t);
 
 private:
     uint32_t seedValue;

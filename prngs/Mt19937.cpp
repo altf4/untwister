@@ -6,6 +6,7 @@
  */
 
 #include "Mt19937.h"
+#include "../ConsoleColors.h"
 
 Mt19937::Mt19937()
 {
@@ -80,4 +81,9 @@ void Mt19937::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t> 
 void Mt19937::setEvidence(std::vector<uint32_t>)
 {
 
+}
+
+void Mt19937::setBounds(uint32_t min, uint32_t max)
+{
+    //Setting bounds is unsupported in C++ rand, so do nothing here. In fact, this should not get called.
 }

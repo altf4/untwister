@@ -50,13 +50,16 @@ public:
     virtual std::vector<uint32_t> predictBackward(uint32_t) = 0;
     virtual void tune(std::vector<uint32_t>, std::vector<uint32_t>) = 0;
     virtual bool reverseToSeed(uint32_t *, uint32_t) = 0;
+    virtual void setBounds(uint32_t, uint32_t) = 0;
 
     virtual ~PRNG(){};
 
 protected:
     std::vector<uint32_t> m_state;
     std::vector<uint32_t> m_evidence;
-
+    uint32_t m_minBound;
+    uint32_t m_maxBound;
+    bool m_isBounded;
 };
 
 #endif /* PRNG_H_ */

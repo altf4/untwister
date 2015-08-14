@@ -1,4 +1,5 @@
 #include "PHP_mt19937.h"
+#include "../ConsoleColors.h"
 
 PHP_mt19937::PHP_mt19937()
 {
@@ -126,4 +127,9 @@ void PHP_mt19937::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32
 void PHP_mt19937::setEvidence(std::vector<uint32_t>)
 {
 
+}
+
+void PHP_mt19937::setBounds(uint32_t min, uint32_t max)
+{
+    //TODO add support for this!
 }

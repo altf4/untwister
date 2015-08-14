@@ -24,6 +24,7 @@ Untwister::Untwister()
     m_isCompleted = new std::atomic<bool>(false);
     m_isRunning = new std::atomic<bool>(false);
     m_isStarting = new std::atomic<bool>(false);
+    m_isBounded = new std::atomic<bool>(false);
     m_observedOutputs = new std::vector<uint32_t>;
     m_depth = DEFAULT_DEPTH;
     m_minConfidence = DEFAULT_MIN_CONFIDENCE;
@@ -38,6 +39,7 @@ Untwister::Untwister(unsigned int observationSize)
     m_isCompleted = new std::atomic<bool>(false);
     m_isRunning = new std::atomic<bool>(false);
     m_isStarting = new std::atomic<bool>(false);
+    m_isBounded = new std::atomic<bool>(false);
     m_observedOutputs = new std::vector<uint32_t>(observationSize);
     m_depth = DEFAULT_DEPTH;
     m_minConfidence = DEFAULT_MIN_CONFIDENCE;
@@ -55,12 +57,13 @@ Untwister::~Untwister()
     delete m_answers;
     delete m_status;
     delete m_isStarting;
+    delete m_isBounded;
 }
 
 /*
  isStarting: The call to bruteforce() has occured but all workers threads have not started yet
-  isRunning: All threads have started and it is safe to call getStatus() externally
-isCompleted: The operation has completed and all worker threads have joined
+ isRunning: All threads have started and it is safe to call getStatus() externally
+ isCompleted: The operation has completed and all worker threads have joined
 */
 std::vector<Seed> Untwister::bruteforce(uint32_t lowerBoundSeed, uint32_t upperBoundSeed)
 {
@@ -118,6 +121,10 @@ void Untwister::m_worker(unsigned int id, uint32_t startingSeed, uint32_t ending
     /* Each thread must have a local factory unless you like mutexes and/or segfaults */
     PRNGFactory factory;
     PRNG *generator = factory.getInstance(m_prng);
+    if(isBounded())
+    {
+        generator->setBounds(m_minBound, m_maxBound);
+    }
     m_answers->at(id) = new std::vector<Seed>();
     m_status->at(id) = 0;
 
@@ -276,6 +283,11 @@ void Untwister::generateSampleFromSeed(uint32_t depth, uint32_t seed)
 {
     PRNGFactory factory;
     PRNG *generator = factory.getInstance(m_prng);
+    /* If we're bounded, then apply those bounds now */
+    if(isBounded())
+    {
+        generator->setBounds(m_minBound, m_maxBound);
+    }
     generator->seed(seed);
 
     for (unsigned int index = 0; index < depth; ++index)
@@ -419,4 +431,38 @@ std::atomic<bool>* Untwister::getIsCompleted()
 std::atomic<bool>* Untwister::getIsRunning()
 {
     return m_isRunning;
+}
+
+void Untwister::setBounds(uint32_t min, uint32_t max)
+{
+    if(m_prng == GLIBC_RAND)
+    {
+        std::string err = "Glibc does not have a bounded rand() function. If your application produces ";
+        err += "bounded random numbers, consider making a Python mangling script. ";
+        throw err;
+    }
+    else if(m_prng == PHP_MT_RAND)
+    {
+        std::string err = "PHP's bounded rand call is not yet supported in untwister. TODO. Sorry!";
+        throw err;
+    }
+    else if(m_prng == MT19937)
+    {
+        std::string err = "C++ does not have a bounded random function. If your application produces ";
+        err += "bounded random numbers, consider making a Python mangling script. ";
+        throw err;
+    }
+    else if(m_prng == RUBY_RAND)
+    {
+        //Everything is fine
+    }
+
+    m_minBound = min;
+    m_maxBound = max;
+    m_isBounded->store(true, std::memory_order_relaxed);
+}
+
+bool Untwister::isBounded()
+{
+    return m_isBounded->load(std::memory_order_relaxed);
 }

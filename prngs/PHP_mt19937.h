@@ -35,6 +35,7 @@ public:
     void tune(std::vector<uint32_t>, std::vector<uint32_t>);
 
     bool reverseToSeed(uint32_t *, uint32_t);
+    void setBounds(uint32_t, uint32_t);
 
 private:
     void php_mt_initialize(uint32_t s);
