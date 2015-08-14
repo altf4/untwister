@@ -1,0 +1,21 @@
+#bounds [100-999]
+251
+289
+960
+332
+267
+573
+779
+446
+982
+182
+184
+#172 This number intentionally removed to test that it doesn't need to be sequantial
+365
+490
+538
+446
+123
+764
+229
+895
