@@ -73,11 +73,12 @@ void Usage(Untwister *untwister)
 
 void DisplayProgress(Untwister *untwister, uint32_t totalWork)
 {
-    std::atomic<bool>* isRunning = untwister->getIsRunning();
-    while (!isRunning->load(std::memory_order_relaxed))
+    std::atomic<bool>* isStarting = untwister->getIsStarting();
+    while (isStarting->load(std::memory_order_relaxed))
     {
         std::this_thread::sleep_for(milliseconds(10));
     }
+
     std::cout.precision(2);
     double percent = 0.0;
     double seedsPerSec = 0.0;
@@ -89,6 +90,12 @@ void DisplayProgress(Untwister *untwister, uint32_t totalWork)
     int yearsLeft = 0;
     steady_clock::time_point started = steady_clock::now();
     std::vector<uint32_t> *status = untwister->getStatus();
+    if(status == NULL)
+    {
+        /* If the status is NULL, we must be in a finished state, since we can't be starting (we already checked that)*/
+        /*    and we can't be running. So, just clean up and quit if we get this.*/
+        return;
+    }
     std::atomic<bool> *isCompleted = untwister->getIsCompleted();
     char spinner[] = {'|', '/', '-', '\\'};
     unsigned int count = 0;

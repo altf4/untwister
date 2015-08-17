@@ -334,7 +334,7 @@ std::vector<uint32_t>* Untwister::getStatus()
     {
         return m_status;
     }
-    throw std::runtime_error("Bruteforce is not running, no status");
+    return NULL;
 }
 
 std::vector<std::string> Untwister::getSupportedPRNGs()
@@ -431,6 +431,11 @@ std::atomic<bool>* Untwister::getIsCompleted()
 std::atomic<bool>* Untwister::getIsRunning()
 {
     return m_isRunning;
+}
+
+std::atomic<bool>* Untwister::getIsStarting()
+{
+    return m_isStarting;
 }
 
 void Untwister::setBounds(uint32_t min, uint32_t max)

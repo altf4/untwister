@@ -66,9 +66,13 @@ public:
     unsigned int getThreads();
     void addObservedOutput(uint32_t observedOutput);
     std::vector<uint32_t>* getObservedOutputs();
+
+    /* Returns NULL if there is no status to get. Such as if the bruteforce thread  */
     std::vector<uint32_t>* getStatus();
     std::atomic<bool>* getIsCompleted();
     std::atomic<bool>* getIsRunning();
+    std::atomic<bool>* getIsStarting();
+
     void setBounds(uint32_t, uint32_t);
     bool isBounded();
 
