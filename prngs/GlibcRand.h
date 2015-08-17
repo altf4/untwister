@@ -1,10 +1,3 @@
-/*
- * GlibcRand.h
- *
- *  Created on: Feb 19, 2014
- *      Author: moloch
- */
-
 #ifndef GLIBCRAND_H_
 #define GLIBCRAND_H_
 

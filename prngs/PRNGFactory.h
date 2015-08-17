@@ -1,10 +1,3 @@
-/*
- * PRNGFactory.h
- *
- *  Created on: Feb 19, 2014
- *      Author: moloch
- */
-
 #ifndef PRNGFACTORY_H_
 #define PRNGFACTORY_H_
 

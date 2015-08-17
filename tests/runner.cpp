@@ -1,5 +1,5 @@
 /*
-    Copyright Dan Petro, moloch 2014
+    Copyright Bishop Fox, moloch 2014
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

@@ -1,10 +1,3 @@
-/*
- * Mt19937.h
- *
- *  Created on: Feb 19, 2014
- *      Author: moloch
- */
-
 #ifndef MT19937_H_
 #define MT19937_H_
 

@@ -1,10 +1,3 @@
-/***
- * consoleColors.h
- *
- *  Created on: Aug 14, 2011
- *      Author: moloch
- */
-
 #ifndef CONSOLECOLORS_H_
 #define CONSOLECOLORS_H_
 

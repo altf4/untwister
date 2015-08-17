@@ -1,10 +1,3 @@
-/*
- * LSBState.h
- *
- *  Created on: April 22, 2014
- *      Author: Dan Petro
- */
-
 #include <stdint.h>
 #include <vector>
 

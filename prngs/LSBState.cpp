@@ -1,5 +1,5 @@
 /*
-    Copyright Dan Petro, 2014
+    Copyright Bishop Fox, 2014
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,4 +22,3 @@ LSBState::LSBState()
     m_LSB = 0;
     m_isKnown = false;
 }
-

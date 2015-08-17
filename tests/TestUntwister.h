@@ -1,9 +1,3 @@
-/*
- * TestUntwister.h
- *
- *  Created on: Dec 13, 2014
- */
-
 #ifndef TESTUNTWISTER_H_
 #define TESTUNTWISTER_H_
 

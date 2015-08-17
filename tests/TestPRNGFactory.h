@@ -1,9 +1,3 @@
-/*
- * TestPRNGFactory.h
- *
- *  Created on: Dec 13, 2014
- */
-
 #ifndef TESTPRNGFACTORY_H_
 #define TESTPRNGFACTORY_H_
 

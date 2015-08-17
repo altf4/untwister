@@ -1,9 +1,3 @@
-/*
- * TestMt19937.h
- *
- *  Created on: Dec 13, 2014
- */
-
 #ifndef TESTMT19937_H_
 #define TESTMT19937_H_
 

@@ -1,10 +1,3 @@
-/*
- * Ruby.h
- *
- *  Created on: Feb 19, 2014
- *      Author: moloch
- */
-
 #ifndef RUBY_H_
 #define RUBY_H_
 

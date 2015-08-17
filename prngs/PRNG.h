@@ -1,9 +1,6 @@
 /*
  * PRNG.h
  *
- *  Created on: Feb 19, 2014
- *      Author: moloch
- *
  *      This is a blank pure virtual interface class
  *      all the PRNGs implement this interface.
  */

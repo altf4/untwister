@@ -1,9 +1,3 @@
-/*
- * Test_PHP_Mt19937.h
- *
- *  Created on: Dec 13, 2014
- */
-
 #ifndef TEST_PHP_MT_RAND_
 #define TEST_PHP_MT_RAND_
 

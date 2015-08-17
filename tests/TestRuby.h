@@ -1,9 +1,3 @@
-/*
- * TestRubyRand.h
- *
- *  Created on: Dec 13, 2014
- */
-
 #ifndef TESTRUBY_H_
 #define TESTRUBY_H_
 
