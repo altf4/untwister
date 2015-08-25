@@ -33,6 +33,7 @@ Untwister - Recover PRNG seeds from observed values.
         mt19937
         php-mt_rand
         ruby-rand
+        java
     -u
         Use bruteforce, but only for unix timestamp values within a range of +/- 1
         year from the current time.
