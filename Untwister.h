@@ -14,7 +14,7 @@
 #include "prngs/PRNG.h"
 
 // Pair of <seed, quality of fit>
-typedef std::pair<uint32_t, double> Seed;
+typedef std::pair<int64_t, double> Seed;
 typedef std::pair<std::vector<uint32_t>, double> State;
 
 static const uint32_t DEFAULT_DEPTH = 1000;
@@ -28,11 +28,15 @@ public:
     Untwister(unsigned int observationSize);
     virtual ~Untwister();
 
-    std::vector<Seed> bruteforce(uint32_t lowerBoundSeed, uint32_t upperBoundSeed);
+    std::vector<Seed> bruteforce(int64_t lowerBoundSeed, int64_t upperBoundSeed);
 
     bool canInferState();
     State inferState();
     uint32_t getStateSize();
+
+    /* Gets the min and max possible seed, for the given PRNG type */
+    int64_t getMinSeed();
+    int64_t getMaxSeed();
 
     std::vector<std::string> getSupportedPRNGs();
     void setPRNG(std::string prng);
@@ -50,7 +54,7 @@ public:
     void addObservedOutput(uint32_t observedOutput);
     std::vector<uint32_t>* getObservedOutputs();
 
-    /* Returns NULL if there is no status to get. Such as if the bruteforce thread  */
+    /* Returns NULL if there is no status to get. Such as if the bruteforce thread hasn't started */
     std::vector<uint32_t>* getStatus();
     std::atomic<bool>* getIsCompleted();
     std::atomic<bool>* getIsRunning();
@@ -59,7 +63,7 @@ public:
     void setBounds(uint32_t, uint32_t);
     bool isBounded();
 
-void generateSampleFromSeed(uint32_t depth, uint32_t seed);
+void generateSampleFromSeed(uint32_t depth, int64_t seed);
 
 private:
     unsigned int m_threads;
@@ -78,7 +82,7 @@ private:
     uint32_t m_maxBound;
 
     void m_worker(unsigned int id, uint32_t startingSeed, uint32_t endingSeed);
-    std::vector<uint32_t> m_divisionOfLabor(uint32_t sizeOfWork);
+    std::vector<uint64_t> m_divisionOfLabor(uint64_t sizeOfWork);
 
 };
 

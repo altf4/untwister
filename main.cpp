@@ -66,11 +66,12 @@ void Usage(Untwister *untwister)
     std::cout << "\t-t <threads>\n\t\tSpawn this many threads (default is " << untwister->getThreads() << ")" << std::endl;
     std::cout << "\t-m <min bound>\n\t\tSet the minimum bound (inclusive), for a bounded PRNG function" << std::endl;
     std::cout << "\t-M <max bound>\n\t\tSet the maximum bound (inclusive), for a bounded PRNG function" << std::endl;
+    std::cout << "\t-s <min seed>\n\t\tSet the minimum seed (inclusive), for brute forcing (a 64 bit signed integer)" << std::endl;
+    std::cout << "\t-S <max seed>\n\t\tSet the maxmimum seed (inclusive), for brute forcing (a 64 bit signed integer)" << std::endl;
     std::cout << std::endl;
 }
 
-
-void DisplayProgress(Untwister *untwister, uint32_t totalWork)
+void DisplayProgress(Untwister *untwister, uint64_t totalWork)
 {
     std::atomic<bool>* isStarting = untwister->getIsStarting();
     while (isStarting->load(std::memory_order_relaxed))
@@ -174,7 +175,7 @@ bool inferenceAttack(Untwister *untwister)
     }
 }
 
-void bruteforceAttack(Untwister *untwister, uint32_t lowerBoundSeed, uint32_t upperBoundSeed)
+void bruteforceAttack(Untwister *untwister, int64_t lowerBoundSeed, int64_t upperBoundSeed)
 {
     std::cout << INFO << "Looking for seed using " << BOLD << untwister->getPRNG() << RESET << std::endl;
     std::cout << INFO << "Spawning " << untwister->getThreads() << " worker thread(s) ..." << std::endl;
@@ -204,8 +205,11 @@ int main(int argc, char *argv[])
 {
     int c;
 
-    uint32_t lowerBoundSeed = 0;
-    uint32_t upperBoundSeed = UINT_MAX;
+    int64_t lowerBoundSeed = 0;
+    int64_t upperBoundSeed = UINT_MAX;
+    bool manualSeedMinFlag = false;
+    bool manualSeedMaxFlag = false;
+    bool timestampFlag = false;
     uint32_t seed = 0;
     uint32_t generationDepth = 20;
     uint32_t min_bound = 0;
@@ -216,10 +220,22 @@ int main(int argc, char *argv[])
     bool bruteforce = false;
     Untwister *untwister = new Untwister();
 
-    while ((c = getopt(argc, argv, "m:M:D:d:i:g:t:r:c:ubh")) != -1)
+    while ((c = getopt(argc, argv, "s:S:m:M:D:d:i:g:t:r:c:ubh")) != -1)
     {
         switch (c)
         {
+            case 's':
+            {
+                lowerBoundSeed = strtoll(optarg, NULL, 10);
+                manualSeedMinFlag = true;
+                break;
+            }
+            case 'S':
+            {
+                upperBoundSeed = strtoll(optarg, NULL, 10);
+                manualSeedMaxFlag = true;
+                break;
+            }
             case 'm':
             {
                 min_bound = strtoul(optarg, NULL, 10);
@@ -250,6 +266,7 @@ int main(int argc, char *argv[])
             {
                 lowerBoundSeed = time(NULL) - ONE_YEAR;
                 upperBoundSeed = time(NULL) + ONE_YEAR;
+                timestampFlag = true;
                 break;
             }
             case 'b':
@@ -367,6 +384,25 @@ int main(int argc, char *argv[])
         std::cerr << WARN << "ERROR: If you want to have a bounded range, provide both -m min and -M max" << std::endl;
         delete untwister;
         return EXIT_SUCCESS;
+    }
+    /* You can't set both -t (for timestamp) and -s or -S */
+    if((manualSeedMaxFlag || manualSeedMinFlag) && timestampFlag)
+    {
+        Usage(untwister);
+        std::cerr << WARN <<
+            "ERROR: You can't set both -t (for timestamp based seeding) and manual seeding  with -s or -S" << std::endl;
+        delete untwister;
+        return EXIT_SUCCESS;
+    }
+    /* If it wasn't set manually, set the min seed */
+    if(!manualSeedMinFlag)
+    {
+        lowerBoundSeed = untwister->getMinSeed();
+    }
+    /* If it wasn't set manually, set the max seed */
+    if(!manualSeedMaxFlag)
+    {
+        upperBoundSeed = untwister->getMaxSeed();
     }
     /* Set the bounds, if there any any */
     if (boundedMaxFlag && boundedMinFlag)

@@ -1,17 +1,17 @@
-#ifndef RUBY_H_
-#define RUBY_H_
+#ifndef JAVA_INT_H_
+#define JAVA_INT_H_
 
 #include <string>
 #include "PRNG.h"
 
-static const std::string RUBY_RAND = "ruby-rand";
-static const uint32_t RUBY_STATE_SIZE = 624;
+static const std::string JAVA = "java";
+static const uint32_t JAVA_STATE_SIZE = 1;
 
-class Ruby: public PRNG
+class Java: public PRNG
 {
 public:
-    Ruby();
-    virtual ~Ruby();
+    Java();
+    virtual ~Java();
 
     const std::string getName(void);
     void seed(int64_t value);
@@ -35,13 +35,9 @@ public:
     int64_t getMaxSeed();
 
 private:
-    void init_genrand(struct MT *mt, unsigned int s);
-    void next_state(struct MT *mt);
-    uint32_t genrand_int32(struct MT *mt);
-    uint32_t make_mask(uint32_t x);
-
-    MT *m_mt;
-    uint32_t seedValue;
+    int32_t next(int32_t bits);
+    int64_t m_seedValue;
+    int64_t m_originalSeed;
 };
 
-#endif /* RUBY_H_ */
+#endif /* JAVA_INT_H_ */

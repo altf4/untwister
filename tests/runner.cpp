@@ -24,6 +24,7 @@
 #include "TestMt19937.h"
 #include "TestRuby.h"
 #include "Test_PHP_mt19937.h"
+#include "TestJava.h"
 
 bool executeAllTests()
 {
@@ -31,6 +32,7 @@ bool executeAllTests()
     runner.addTest(TestMt19937::suite());
     runner.addTest(Test_PHP_Mt19937::suite());
     runner.addTest(TestRuby::suite());
+    runner.addTest(TestJava::suite());
     runner.addTest(TestPRNGFactory::suite());
     runner.addTest(TestUntwister::suite());
     return runner.run();

@@ -17,6 +17,7 @@
 
 #include "Mt19937.h"
 #include "../ConsoleColors.h"
+#include <climits>
 
 Mt19937::Mt19937()
 {
@@ -30,13 +31,13 @@ const std::string Mt19937::getName()
     return MT19937;
 }
 
-void Mt19937::seed(uint32_t value)
+void Mt19937::seed(int64_t value)
 {
-    seedValue = value;
-    this->generator.seed(value);
+    seedValue = (uint32_t)value;
+    this->generator.seed(seedValue);
 }
 
-uint32_t Mt19937::getSeed()
+int64_t Mt19937::getSeed()
 {
     return seedValue;
 }
@@ -77,7 +78,7 @@ std::vector<uint32_t> Mt19937::predictBackward(uint32_t)
 }
 
 
-bool Mt19937::reverseToSeed(uint32_t *outSeed, uint32_t depth)
+bool Mt19937::reverseToSeed(int64_t *outSeed, uint32_t depth)
 {
     //TODO
     return false;
@@ -96,4 +97,14 @@ void Mt19937::setEvidence(std::vector<uint32_t>)
 void Mt19937::setBounds(uint32_t min, uint32_t max)
 {
     //Setting bounds is unsupported in C++ rand, so do nothing here. In fact, this should not get called.
+}
+
+int64_t Mt19937::getMinSeed()
+{
+    return 0;
+}
+
+int64_t Mt19937::getMaxSeed()
+{
+    return UINT_MAX;
 }

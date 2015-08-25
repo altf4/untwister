@@ -36,8 +36,8 @@ class PRNG
 public:
 
     virtual const std::string getName(void) = 0;
-    virtual void seed(uint32_t) = 0;
-    virtual uint32_t getSeed(void) = 0;
+    virtual void seed(int64_t) = 0;
+    virtual int64_t getSeed(void) = 0;
     virtual uint32_t random(void) = 0;
     virtual uint32_t getStateSize(void) = 0;
     virtual void setState(std::vector<uint32_t>) = 0;
@@ -46,8 +46,10 @@ public:
     virtual std::vector<uint32_t> predictForward(uint32_t) = 0;
     virtual std::vector<uint32_t> predictBackward(uint32_t) = 0;
     virtual void tune(std::vector<uint32_t>, std::vector<uint32_t>) = 0;
-    virtual bool reverseToSeed(uint32_t *, uint32_t) = 0;
+    virtual bool reverseToSeed(int64_t *, uint32_t) = 0;
     virtual void setBounds(uint32_t, uint32_t) = 0;
+    virtual int64_t getMinSeed() = 0;
+    virtual int64_t getMaxSeed() = 0;
 
     virtual ~PRNG(){};
 

@@ -14,8 +14,8 @@ public:
     virtual ~Mt19937();
 
     const std::string getName(void);
-    void seed(uint32_t value);
-    uint32_t getSeed(void);
+    void seed(int64_t value);
+    int64_t getSeed(void);
     uint32_t random(void);
 
     uint32_t getStateSize(void);
@@ -28,8 +28,11 @@ public:
     std::vector<uint32_t> predictBackward(uint32_t);
     void tune(std::vector<uint32_t>, std::vector<uint32_t>);
 
-    bool reverseToSeed(uint32_t *, uint32_t);
+    bool reverseToSeed(int64_t *, uint32_t);
     void setBounds(uint32_t, uint32_t);
+
+    int64_t getMinSeed();
+    int64_t getMaxSeed();
 
 private:
     uint32_t seedValue;

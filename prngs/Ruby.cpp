@@ -18,6 +18,7 @@
 #include "Ruby.h"
 #include "../ConsoleColors.h"
 #include <iostream>
+#include <climits>
 
 Ruby::Ruby()
 {
@@ -38,15 +39,15 @@ const std::string Ruby::getName()
     return RUBY_RAND;
 }
 
-void Ruby::seed(uint32_t value)
+void Ruby::seed(int64_t value)
 {
     delete m_mt;
     m_mt = new MT;
-    seedValue = value;
-    init_genrand(m_mt, value);
+    seedValue = (uint32_t)value;
+    init_genrand(m_mt, seedValue);
 }
 
-uint32_t Ruby::getSeed()
+int64_t Ruby::getSeed()
 {
     return seedValue;
 }
@@ -156,7 +157,7 @@ std::vector<uint32_t> Ruby::predictBackward(uint32_t)
     return ret;
 }
 
-bool Ruby::reverseToSeed(uint32_t *outSeed, uint32_t depth)
+bool Ruby::reverseToSeed(int64_t *outSeed, uint32_t depth)
 {
     return false;
 }
@@ -186,4 +187,14 @@ void Ruby::setBounds(uint32_t min, uint32_t max)
     m_minBound = min;
     m_maxBound = max;
     m_isBounded = true;
+}
+
+int64_t Ruby::getMinSeed()
+{
+    return 0;
+}
+
+int64_t Ruby::getMaxSeed()
+{
+    return UINT_MAX;
 }

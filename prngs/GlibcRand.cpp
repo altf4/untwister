@@ -17,6 +17,7 @@
 
 #include "GlibcRand.h"
 #include "../ConsoleColors.h"
+#include <climits>
 
 GlibcRand::GlibcRand()
 {
@@ -32,8 +33,9 @@ const std::string GlibcRand::getName()
     return GLIBC_RAND;
 }
 
-void GlibcRand::seed(uint32_t seed)
+void GlibcRand::seed(int64_t long_seed)
 {
+    uint32_t seed = (uint32_t)long_seed;
     long int i;
     int32_t word;
     int32_t *dst;
@@ -69,7 +71,7 @@ void GlibcRand::seed(uint32_t seed)
     }
 }
 
-uint32_t GlibcRand::getSeed()
+int64_t GlibcRand::getSeed()
 {
     return seedValue;
 }
@@ -193,7 +195,7 @@ void GlibcRand::tune_repeatedIncrements()
             /* Get the success rate of this state */
             std::vector<uint32_t> guesses = this->predictForward(m_evidence.size() - GLIBC_RAND_STATE_SIZE);
 
-            uint64_t sum = 0;
+            int64_t sum = 0;
             for(uint32_t j = 0; j < guesses.size(); j++)
             {
                 sum += std::min(guesses[j] - m_evidence[GLIBC_RAND_STATE_SIZE + j],
@@ -206,7 +208,7 @@ void GlibcRand::tune_repeatedIncrements()
             /* Get the success rate of the new state */
             guesses = this->predictForward(m_evidence.size() - GLIBC_RAND_STATE_SIZE);
 
-            uint64_t sum_new = 0;
+            int64_t sum_new = 0;
             for(uint32_t j = 0; j < guesses.size(); j++)
             {
                 /* The guess can NEVER be bigger than the evidence */
@@ -404,7 +406,7 @@ bool GlibcRand::isInitState(std::deque<uint32_t> *tmp_state)
     return false;
 }
 
-bool GlibcRand::reverseToSeed(uint32_t *outSeed, uint32_t depth)
+bool GlibcRand::reverseToSeed(int64_t *outSeed, uint32_t depth)
 {
     /* Keep state in a deque for this, as we're going to need to go backwards a lot
         This is for efficiency only. As we might have to go very deeply backwards,
@@ -443,4 +445,14 @@ void GlibcRand::tune(std::vector<uint32_t> evidenceForward, std::vector<uint32_t
 void GlibcRand::setBounds(uint32_t min, uint32_t max)
 {
     //Setting bounds is unsupported in gblibc, so do nothing here. In fact, this should not get called.
+}
+
+int64_t GlibcRand::getMinSeed()
+{
+    return 0;
+}
+
+int64_t GlibcRand::getMaxSeed()
+{
+    return UINT_MAX;
 }

@@ -17,6 +17,7 @@
 
 #include "PHP_mt19937.h"
 #include "../ConsoleColors.h"
+#include <climits>
 
 PHP_mt19937::PHP_mt19937()
 {
@@ -35,16 +36,16 @@ const std::string PHP_mt19937::getName()
     return PHP_MT_RAND;
 }
 
-void PHP_mt19937::seed(uint32_t value)
+void PHP_mt19937::seed(int64_t value)
 {
     delete m_mt;
     m_mt = new MT;
-    m_seedValue = value;
+    m_seedValue = (int64_t)value;
     php_mt_initialize(m_seedValue);
     php_mt_reload();
 }
 
-uint32_t PHP_mt19937::getSeed()
+int64_t PHP_mt19937::getSeed()
 {
     return m_seedValue;
 }
@@ -131,7 +132,7 @@ std::vector<uint32_t> PHP_mt19937::predictBackward(uint32_t)
     return ret;
 }
 
-bool PHP_mt19937::reverseToSeed(uint32_t *outSeed, uint32_t depth)
+bool PHP_mt19937::reverseToSeed(int64_t *outSeed, uint32_t depth)
 {
     return false;
 }
@@ -149,4 +150,14 @@ void PHP_mt19937::setEvidence(std::vector<uint32_t>)
 void PHP_mt19937::setBounds(uint32_t min, uint32_t max)
 {
     //TODO add support for this!
+}
+
+int64_t PHP_mt19937::getMinSeed()
+{
+    return 0;
+}
+
+int64_t PHP_mt19937::getMaxSeed()
+{
+    return UINT_MAX;
 }

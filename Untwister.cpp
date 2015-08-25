@@ -65,7 +65,7 @@ Untwister::~Untwister()
  isRunning: All threads have started and it is safe to call getStatus() externally
  isCompleted: The operation has completed and all worker threads have joined
 */
-std::vector<Seed> Untwister::bruteforce(uint32_t lowerBoundSeed, uint32_t upperBoundSeed)
+std::vector<Seed> Untwister::bruteforce(int64_t lowerBoundSeed, int64_t upperBoundSeed)
 {
     if (m_isRunning->load(std::memory_order_relaxed) || m_isStarting->exchange(true))
     {
@@ -77,13 +77,13 @@ std::vector<Seed> Untwister::bruteforce(uint32_t lowerBoundSeed, uint32_t upperB
         m_isCompleted->store(false, std::memory_order_relaxed);
     }
 
-    std::vector<uint32_t> labor = m_divisionOfLabor(upperBoundSeed - lowerBoundSeed);
-    uint32_t startAt = lowerBoundSeed;
+    std::vector<uint64_t> labor = m_divisionOfLabor(upperBoundSeed - lowerBoundSeed);
+    int64_t startAt = lowerBoundSeed;
     std::vector<std::thread> pool = std::vector<std::thread>(m_threads);
 
     for (unsigned int id = 0; id < m_threads; ++id)
     {
-        uint32_t endAt = startAt + labor.at(id);
+        int64_t endAt = startAt + labor.at(id);
         pool[id] = std::thread(&Untwister::m_worker, this, id, startAt, endAt);
         startAt += labor.at(id);
     }
@@ -250,7 +250,7 @@ State Untwister::inferState()
         /* If we get a perfect guess, then try reversing out the seed, and exit */
         if(matchesFound == (m_observedOutputs->size() - stateSize))
         {
-            uint32_t outSeed = 0;
+            int64_t outSeed = 0;
             if(generator->reverseToSeed(&outSeed, 10000))
             {
                 /* We win! */
@@ -279,7 +279,7 @@ State Untwister::inferState()
     return finalState;
 }
 
-void Untwister::generateSampleFromSeed(uint32_t depth, uint32_t seed)
+void Untwister::generateSampleFromSeed(uint32_t depth, int64_t seed)
 {
     PRNGFactory factory;
     PRNG *generator = factory.getInstance(m_prng);
@@ -298,12 +298,12 @@ void Untwister::generateSampleFromSeed(uint32_t depth, uint32_t seed)
 }
 
 /* Divide X work among Y number of threads, and evenly distribute remainders */
-std::vector<uint32_t> Untwister::m_divisionOfLabor(uint32_t sizeOfWork)
+std::vector<uint64_t> Untwister::m_divisionOfLabor(uint64_t sizeOfWork)
 {
-    uint32_t work = sizeOfWork / m_threads;
-    uint32_t leftover = sizeOfWork % m_threads;
-    std::vector<uint32_t> labor(m_threads);
-    for(uint32_t index = 0; index < m_threads; ++index)
+    uint64_t work = sizeOfWork / m_threads;
+    uint64_t leftover = sizeOfWork % m_threads;
+    std::vector<uint64_t> labor(m_threads);
+    for(uint64_t index = 0; index < m_threads; ++index)
     {
         if (0 < leftover)
         {
@@ -457,10 +457,6 @@ void Untwister::setBounds(uint32_t min, uint32_t max)
         err += "bounded random numbers, consider making a Python mangling script. ";
         throw err;
     }
-    else if(m_prng == RUBY_RAND)
-    {
-        //Everything is fine
-    }
 
     m_minBound = min;
     m_maxBound = max;
@@ -470,4 +466,24 @@ void Untwister::setBounds(uint32_t min, uint32_t max)
 bool Untwister::isBounded()
 {
     return m_isBounded->load(std::memory_order_relaxed);
+}
+
+/* Gets the min possible seed, for the given PRNG type */
+int64_t Untwister::getMinSeed()
+{
+    PRNGFactory factory;
+    PRNG *generator = factory.getInstance(m_prng);
+    int64_t val = generator->getMinSeed();
+    delete generator;
+    return val;
+}
+
+/* Gets the max possible seed, for the given PRNG type */
+int64_t Untwister::getMaxSeed()
+{
+    PRNGFactory factory;
+    PRNG *generator = factory.getInstance(m_prng);
+    int64_t val = generator->getMaxSeed();
+    delete generator;
+    return val;
 }

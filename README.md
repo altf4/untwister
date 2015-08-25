@@ -49,6 +49,10 @@ Untwister - Recover PRNG seeds from observed values.
         Set the minimum bound (inclusive), for a bounded PRNG function
     -M <max bound>
         Set the maximum bound (inclusive), for a bounded PRNG function
+    -s <min seed>
+        Set the minimum seed (inclusive), for brute forcing (a 64 bit signed integer)
+    -S <max seed>
+        Set the maxmimum seed (inclusive), for brute forcing (a 64 bit signed integer)
 
 Examples:
     Cracking a list of random numbers in test_ints.txt

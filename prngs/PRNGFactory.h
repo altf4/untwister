@@ -9,6 +9,7 @@
 #include "GlibcRand.h"
 #include "Ruby.h"
 #include "PHP_mt19937.h"
+#include "Java.h"
 
 /* Template to bind constructor to mapped string */
 template<typename T> PRNG* create() { return new T; }
