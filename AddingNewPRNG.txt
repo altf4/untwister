@@ -1,0 +1,20 @@
+How to add a new PRNG to untwister:
+
+New files to create:
+    prngs/yourPRNG.cpp
+    prngs/yourPRNG.h
+
+Files to edit:
+    Add header to PRNGFactory.h, like so:
+        #include "yourPRNG.h"
+    Add PRNG type to the PRNGFactory.cpp constructor's list, like so:
+        library[YOUR_PRNG] = &create<YOUR_PRNG>;
+        (Where YOUR_PRNG is a macro to a std::string that is the command line arg for your PRNG. Defined in yourPRNG.h)
+    Add your PRNG to the Makefile. Try following in the footsteps of an existing one, like Ruby. Should be easy.
+    Add unit tests!
+        tests/testYourPRNG.cpp  / .h
+            Follow an example from an existing test file. It's pretty straight forward
+        Add to Runner.cpp in executeAllTests()
+            runner.addTest(TestYourPRNG::suite());
+        and the header:
+            #include "TestYourPRNG.h"
