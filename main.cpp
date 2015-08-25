@@ -450,6 +450,17 @@ int main(int argc, char *argv[])
     {
         inferenceAttack(untwister);
     }
+
+    /* Give warning about large seed space */
+    if((!boundedMaxFlag || !boundedMinFlag) && (untwister->getPRNG() == "java"))
+    {
+        std::cout << WARN << "WARNING: Java Random() seeds are 64 bit signed integers. (Though technically they only" <<
+        " use 48 bits of it.) Anyway, trying to brute force through all possible seeds will probably never finish. " <<
+        "Consider using -s or -S to restrict the seed space to something more reasonable. For instance, Java by" <<
+        " default seeds the PRNG with the current system timestamp in milliseconds." <<
+        " IE: System.currentTimeMillis()" << std::endl;
+    }
+
     bruteforceAttack(untwister, lowerBoundSeed, upperBoundSeed);
     delete untwister;
     return EXIT_SUCCESS;
