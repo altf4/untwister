@@ -10,6 +10,7 @@ Supported PRNGs
 * Mersenne Twister (MT19937)
 * PHP's MT-variant (php_mt_rand)
 * Ruby's MT-variant DEFAULT::rand()
+* Java's Random() class
 
 Usage
 ========
