@@ -61,7 +61,7 @@ Untwister::~Untwister()
 }
 
 /*
- isStarting: The call to bruteforce() has occured but all workers threads have not started yet
+ isStarting: The call to bruteforce() has occurred but all workers threads have not started yet
  isRunning: All threads have started and it is safe to call getStatus() externally
  isCompleted: The operation has completed and all worker threads have joined
 */
@@ -114,7 +114,7 @@ std::vector<Seed> Untwister::bruteforce(int64_t lowerBoundSeed, int64_t upperBou
     return results;
 }
 
-/* This method is execute as a seperate thread */
+/* This method is executed as a separate thread */
 void Untwister::m_worker(unsigned int id, uint32_t startingSeed, uint32_t endingSeed)
 {
 
