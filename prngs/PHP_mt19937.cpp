@@ -57,7 +57,7 @@ uint32_t PHP_mt19937::random()
 
     if (m_isBounded) {
     /* RAND_MAX (1 << 31) - 1 */
-        result = (int32_t)((m_maxBound - m_minBound + 1.0) * (result / ((1 << 31) - 1 + 1.0)));
+        result = (int32_t)((m_maxBound - m_minBound + 1.0) * (result / ((long)(1 << 31) - 1 + 1.0)));
     }
 
     return result;
