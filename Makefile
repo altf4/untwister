@@ -1,7 +1,7 @@
 # Standard flags
 CPPFLAGS = -std=gnu++11 -O3 -g3 -Wall -c -fmessage-length=0 -MMD -fPIC
-PYTHON = /usr/include/python2.7
-BOOST = /usr/include
+PYTHON = /usr/local/bin/python2.7
+BOOST = /usr/local/include/boost
 OBJS = ./prngs/LSBState.o ./prngs/GlibcRand.o ./prngs/PHP_mt19937.o ./prngs/Mt19937.o ./prngs/Ruby.o ./prngs/Java.o ./prngs/PRNGFactory.o ./Untwister.o
 TEST_OBJS = ./tests/runner.o ./tests/TestRuby.o ./tests/TestJava.o ./tests/TestMt19937.o ./tests/TestPRNGFactory.o ./tests/Test_PHP_mt19937.o ./tests/TestUntwister.o
 CC = g++
