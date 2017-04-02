@@ -52,7 +52,15 @@ int64_t PHP_mt19937::getSeed()
 
 uint32_t PHP_mt19937::random()
 {
-    return genrand_int32(m_mt) >> 1;
+    int32_t result;
+    result = genrand_int32(m_mt) >> 1;
+
+    if (m_isBounded) {
+    /* RAND_MAX (1 << 31) - 1 */
+        result = (int32_t)((m_maxBound - m_minBound + 1.0) * (result / ((long)(1 << 31) - 1 + 1.0)));
+    }
+
+    return result;
 }
 
 void PHP_mt19937::php_mt_initialize(uint32_t seed)
@@ -149,7 +157,9 @@ void PHP_mt19937::setEvidence(std::vector<uint32_t>)
 
 void PHP_mt19937::setBounds(uint32_t min, uint32_t max)
 {
-    //TODO add support for this!
+    m_minBound = min;
+    m_maxBound = max;
+    m_isBounded = true;
 }
 
 int64_t PHP_mt19937::getMinSeed()

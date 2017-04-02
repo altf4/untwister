@@ -446,11 +446,6 @@ void Untwister::setBounds(uint32_t min, uint32_t max)
         err += "bounded random numbers, consider making a Python mangling script. ";
         throw err;
     }
-    else if(m_prng == PHP_MT_RAND)
-    {
-        std::string err = "PHP's bounded rand call is not yet supported in untwister. TODO. Sorry!";
-        throw err;
-    }
     else if(m_prng == MT19937)
     {
         std::string err = "C++ does not have a bounded random function. If your application produces ";
