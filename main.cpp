@@ -395,12 +395,12 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
     /* If it wasn't set manually, set the min seed */
-    if(!manualSeedMinFlag)
+    if(!(manualSeedMinFlag || timestampFlag))
     {
         lowerBoundSeed = untwister->getMinSeed();
     }
     /* If it wasn't set manually, set the max seed */
-    if(!manualSeedMaxFlag)
+    if(!(manualSeedMaxFlag || timestampFlag))
     {
         upperBoundSeed = untwister->getMaxSeed();
     }
