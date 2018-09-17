@@ -87,6 +87,12 @@ brew install boost --with-python
 make python
 ```
 
+### Instaling
+
+```
+g++ -c -fPIC Untwister.cpp -I/path/to/boost/headers -I/path/to/python/headers -o Untwister.o
+g++ -shared -Wl,-soname,untwister.so -o untwister.so  Untwister.o
+```
 
 Example script:
 
